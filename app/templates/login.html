@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Log in — Axion{% endblock %}
+{% block content %}
+<section class="auth-page">
+  <div class="auth-card">
+    <div class="text-center mb-4">
+      <div class="auth-logo mx-auto mb-3">M</div>
+      <h1 class="auth-title">Welcome back</h1>
+      <p class="auth-sub">Sign in with your username or email</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} py-2 mb-3" style="font-size:13px;border-radius:10px;">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="post">
+      <!-- Username or Email — REQUIRED -->
+      <div class="mb-3">
+        <label class="field-label">
+          <i class="bi bi-person me-1"></i>Username or Email <span style="color:#ef4444;font-size:13px;">*</span>
+        </label>
+        <div class="input-group-enhanced">
+          <i class="bi bi-person input-icon"></i>
+          <input class="input input-with-icon" type="text" name="identifier"
+                 placeholder="cryptoking or you@example.com"
+                 required autocomplete="username">
+        </div>
+      </div>
+
+      <!-- Password — REQUIRED -->
+      <div class="mb-4">
+        <label class="field-label">
+          <i class="bi bi-lock me-1"></i>Password <span style="color:#ef4444;font-size:13px;">*</span>
+        </label>
+        <div class="input-group-enhanced">
+          <i class="bi bi-lock input-icon"></i>
+          <input class="input input-with-icon" type="password" name="password"
+                 placeholder="••••••••" required autocomplete="current-password">
+        </div>
+      </div>
+
+      <button class="btn-solid btn-full" type="submit">
+        <i class="bi bi-box-arrow-in-right me-2"></i>Log in
+      </button>
+    </form>
+
+    <div class="auth-divider"><span>New here?</span></div>
+    <a href="{{ url_for('main.signup') }}" class="btn-outline-auth">
+      <i class="bi bi-person-plus me-1"></i>Create an account
+    </a>
+  </div>
+</section>
+{% endblock %}

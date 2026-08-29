@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Telegram Users — Axion{% endblock %}
+{% block content %}
+
+<div class="admin-page">
+
+  <!-- Header -->
+  <div class="admin-page-header d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+    <div>
+      <h1 class="mb-0 fw-800"><i class="bi bi-telegram me-2" style="color:#229ED9;"></i>Telegram Bot Users</h1>
+      <p class="text-secondary mb-0 mt-1" style="font-size:13px;">Everyone who has opened the axion Telegram bot</p>
+    </div>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn-outline-nav">
+      <i class="bi bi-arrow-left me-1"></i>Back to Users
+    </a>
+  </div>
+
+  <!-- Total card -->
+  <div class="row g-3 mb-4">
+    <div class="col-auto">
+      <div class="admin-stat-card" style="min-width:160px;">
+        <div style="font-size:28px; color:#229ED9; margin-bottom:4px;"><i class="bi bi-telegram"></i></div>
+        <div style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:var(--text4); margin-bottom:2px;">TELEGRAM USERS</div>
+        <div style="font-size:36px; font-weight:900; color:var(--text); line-height:1;">{{ rows|length }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table card -->
+  <div class="admin-table-card">
+    <div class="table-responsive">
+      <table class="table token-table mb-0">
+        <thead>
+          <tr>
+            <th>Telegram Username</th>
+            <th>Telegram ID</th>
+            <th>Joined</th>
+            <th class="text-end">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="user-avatar" style="width:32px;height:32px;font-size:13px;">{{ (row.telegram_username or 'T')[0].upper() }}</div>
+                <strong style="font-size:14px;">@{{ row.telegram_username or 'unknown' }}</strong>
+              </div>
+            </td>
+            <td style="font-family:var(--mono); font-size:13px; color:var(--text3);">{{ row.telegram_id }}</td>
+            <td style="font-size:12px; color:var(--text4);">{{ row.user.created_at.strftime('%b %d, %Y %H:%M') if row.user.created_at else '—' }}</td>
+            <td class="text-end">
+              <a href="{{ url_for('admin.user_detail', user_id=row.user.id) }}" class="btn-outline-nav" style="padding:6px 14px; font-size:12px;">
+                <i class="bi bi-pencil-square me-1"></i>Edit Balance
+              </a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4" class="text-center text-secondary py-4" style="font-size:13px;">
+              No one has opened the Telegram bot yet.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

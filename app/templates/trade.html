@@ -1,0 +1,521 @@
+{% extends "base.html" %}
+{% block title %}Trade — Axion{% endblock %}
+
+{% block content %}
+<section class="swap-page">
+  <div class="swap-wrap">
+
+    <div class="swap-header">
+      <h2 class="swap-title"><i class="bi bi-arrow-left-right me-2"></i>Swap</h2>
+      <button class="swap-settings-btn" id="swap-settings-btn" title="Settings">
+        <i class="bi bi-sliders"></i>
+      </button>
+    </div>
+
+    <div class="swap-settings-panel hidden" id="swap-settings-panel">
+      <div class="settings-row">
+        <span class="settings-label">Slippage Tolerance</span>
+        <div class="slippage-options">
+          <button class="slip-btn slip-active" data-val="0.5">0.5%</button>
+          <button class="slip-btn" data-val="1">1%</button>
+          <button class="slip-btn" data-val="3">3%</button>
+          <input class="slip-input" type="number" placeholder="Custom" min="0" max="50" step="0.1">
+        </div>
+      </div>
+    </div>
+
+    <div class="swap-tabs">
+      <button class="swap-tab swap-tab-active" data-kind="buy">Buy</button>
+      <button class="swap-tab" data-kind="sell">Sell</button>
+    </div>
+
+    <div class="chain-selector-row">
+      {% for key, chain in chains.items() %}
+      <button class="chain-pill {% if loop.first %}chain-pill-active{% endif %}" data-chain="{{ key }}">
+        <span class="chain-pill-dot"></span>{{ chain.name }}
+      </button>
+      {% endfor %}
+    </div>
+
+    <div class="token-box" id="from-box">
+      <div class="token-box-top">
+        <span class="token-box-label">You pay (USD value)</span>
+        <span class="token-box-balance" id="from-balance">Balance: —</span>
+      </div>
+      <div class="token-box-main">
+        <input class="token-amount-input" id="from-amount" type="number" placeholder="0.00" min="0" step="any">
+        <button class="token-selector-btn" id="from-token-btn">
+          <span class="token-selector-sym" id="from-sym">ETH</span>
+          <i class="bi bi-chevron-down token-selector-chevron"></i>
+        </button>
+      </div>
+      <div class="token-box-usd" id="from-usd">≈ $0.00</div>
+    </div>
+
+    <div class="swap-arrow-wrap">
+      <button class="swap-arrow-btn" id="swap-flip-btn">
+        <i class="bi bi-arrow-down-up"></i>
+      </button>
+    </div>
+
+    <div class="token-box token-box-to" id="to-box">
+      <div class="token-box-top">
+        <span class="token-box-label">You receive</span>
+        <span class="token-box-balance" id="to-balance">Balance: —</span>
+      </div>
+      <div class="token-box-main">
+        <input class="token-amount-input" id="to-amount" type="number" placeholder="0.00" readonly>
+        <button class="token-selector-btn" id="to-token-btn">
+          <span class="token-selector-sym" id="to-sym">Select token</span>
+          <i class="bi bi-chevron-down token-selector-chevron"></i>
+        </button>
+      </div>
+      <div class="token-box-usd" id="to-usd">≈ $0.00</div>
+    </div>
+
+    <div class="token-addr-row">
+      <label class="token-addr-label"><i class="bi bi-file-code me-1"></i>Token contract address</label>
+      <input class="token-addr-input" id="trade-token" placeholder="0x... or paste CA">
+    </div>
+
+    <div class="quote-info-box hidden" id="quote-info-box">
+      <div class="quote-info-row"><span>You will receive</span><strong id="qi-amount">—</strong></div>
+      <div class="quote-info-row"><span>USD value</span><strong id="qi-usd">—</strong></div>
+      <div class="quote-info-row"><span>Deposit on</span><strong id="qi-chain">—</strong></div>
+      <div class="quote-info-row"><span>Network fee</span><strong>~$0.50</strong></div>
+    </div>
+
+    <div class="swap-status" id="trade-status"></div>
+
+    <button class="swap-cta-btn" id="get-quote">
+      <i class="bi bi-search me-2"></i>Get Quote
+    </button>
+    <button class="swap-cta-btn swap-cta-confirm hidden" id="confirm-swap">
+      <i class="bi bi-arrow-left-right me-2"></i>Swap & Deposit
+    </button>
+
+  </div>
+</section>
+
+<!-- Token picker modal -->
+<div class="token-picker-overlay hidden" id="token-picker-overlay">
+  <div class="token-picker-modal">
+    <div class="token-picker-header">
+      <span class="token-picker-title">Select a token</span>
+      <button class="token-picker-close" id="token-picker-close"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="token-picker-search-wrap">
+      <i class="bi bi-search" style="color:var(--text3); font-size:13px;"></i>
+      <input class="token-picker-search" id="token-picker-search" placeholder="Search name or paste address…">
+    </div>
+    <div class="token-picker-popular">
+      <span class="token-picker-section">Popular tokens</span>
+      <div class="token-picker-chips" id="token-picker-chips">
+        <button class="token-chip" data-sym="ETH"  data-addr="native">ETH</button>
+        <button class="token-chip" data-sym="USDC" data-addr="0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48">USDC</button>
+        <button class="token-chip" data-sym="USDT" data-addr="0xdac17f958d2ee523a2206206994597c13d831ec7">USDT</button>
+        <button class="token-chip" data-sym="WBTC" data-addr="0x2260fac5e5542a773aa44fbcfedf7c193bc2c599">WBTC</button>
+        <button class="token-chip" data-sym="PEPE" data-addr="0x6982508145454ce325ddbe47a25d4ec3d2311933">PEPE</button>
+        <button class="token-chip" data-sym="SHIB" data-addr="0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce">SHIB</button>
+        <button class="token-chip" data-sym="SOL"  data-addr="So11111111111111111111111111111111111111112">SOL</button>
+      </div>
+    </div>
+    <div class="token-picker-list" id="token-picker-list"></div>
+  </div>
+</div>
+
+<!-- Deposit modal — shown after user clicks "Swap & Deposit" -->
+<div class="modal fade" id="depositModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content ml-modal">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-800">
+          <i class="bi bi-send-check me-2 text-primary"></i>Complete Your Swap
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body pt-3">
+
+        <!-- Step 1: Summary -->
+        <div class="deposit-summary mb-4">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="text-secondary" style="font-size:13px;">You're swapping</span>
+            <strong id="dep-amount-label" style="font-size:16px; color:var(--blue);">$0.00</strong>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="text-secondary" style="font-size:13px;">To receive</span>
+            <strong id="dep-token-label" style="font-size:16px;">—</strong>
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="text-secondary" style="font-size:13px;">Estimated tokens</span>
+            <strong id="dep-est-tokens" style="font-size:16px; color:var(--green);">—</strong>
+          </div>
+        </div>
+
+        <!-- Step 2: Choose deposit chain -->
+        <div class="mb-4">
+          <label class="section-label mb-2"><i class="bi bi-layers me-1"></i>Step 1 — Choose deposit network</label>
+          <div class="d-flex gap-2 flex-wrap">
+            <button class="dep-chain-btn dep-chain-active" data-chain="ethereum">🔷 Ethereum</button>
+            <button class="dep-chain-btn" data-chain="bsc">🟡 BNB Chain</button>
+            <button class="dep-chain-btn" data-chain="solana">🟣 Solana</button>
+          </div>
+        </div>
+
+        <!-- Step 3: Deposit address -->
+        <div class="mb-4">
+          <label class="section-label mb-2"><i class="bi bi-wallet2 me-1"></i>Step 2 — Send to this address</label>
+          <div class="address-card p-3" style="border-radius:12px;">
+            <div class="address-row">
+              <code id="dep-address" style="font-size:12px; word-break:break-all;">0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf</code>
+              <button class="copy-btn" id="dep-copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('dep-address').textContent); this.innerHTML='<i class=\'bi bi-check\'></i> Copied!'; setTimeout(()=>this.innerHTML='<i class=\'bi bi-copy\'></i> Copy',1500);">
+                <i class="bi bi-copy"></i> Copy
+              </button>
+            </div>
+          </div>
+          <div class="mt-2 text-secondary" style="font-size:12px;">
+            <i class="bi bi-info-circle me-1"></i>Send exactly the amount equivalent to <strong id="dep-send-hint">$0.00</strong> in the selected network's native token.
+          </div>
+        </div>
+
+        <!-- Confirmation note -->
+        <div class="wallet-warn" style="font-size:12px;">
+          <i class="bi bi-clock me-1"></i>
+          After clicking "I've Paid", our team will verify your deposit and credit <strong id="dep-token-confirm">—</strong> to your account within minutes.
+        </div>
+
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn-outline-nav" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn-solid" id="dep-paid-btn" style="width:auto; padding:12px 28px;">
+          <i class="bi bi-check2-circle me-2"></i>I've Paid — Notify Admin
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Success modal -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content ml-modal text-center p-4">
+      <div style="font-size:52px; margin-bottom:12px;">✅</div>
+      <h5 class="fw-800 mb-2">Order Submitted!</h5>
+      <p class="text-secondary" style="font-size:13px;" id="success-msg">
+        Your payment has been submitted. Admin will verify and credit your tokens shortly.
+      </p>
+      <button class="btn-solid mt-2" data-bs-dismiss="modal" style="width:auto; padding:10px 24px;">
+        <i class="bi bi-house me-1"></i>Back to Home
+      </button>
+    </div>
+  </div>
+</div>
+<!-- My Orders panel -->
+<section class="swap-page" style="padding-top:0;">
+  <div class="swap-wrap" id="my-orders-wrap" style="display:none;">
+    <div class="swap-header">
+      <h2 class="swap-title" style="font-size:18px;">
+        <i class="bi bi-clock-history me-2"></i>My Swap Orders
+      </h2>
+      <span class="bell-badge" id="orders-pending-dot" style="display:none; background:var(--red,#ef4444); color:#fff; border-radius:99px; padding:2px 8px; font-size:11px; font-weight:700;"></span>
+    </div>
+    <div id="my-orders-list">
+      <div class="text-center text-secondary py-4" style="font-size:13px;">
+        <div class="spinner-border spinner-border-sm mb-2" role="status"></div>
+        <div>Loading orders…</div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  const DEPOSIT_ADDRESSES = {
+    ethereum: '0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf',
+    bsc:      '0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf',
+    solana:   '67ZMMrmdR7S2shWpLmfrHZd2dF68JZZyNGDWjfHWcQSV',
+  };
+  // Approximate USD prices per chain's native gas token. Used as a fallback
+  // for quick estimates; real meme-token prices (via contract address) are
+  // fetched live from DexScreener below.
+  const NATIVE_PRICES = {
+    ethereum: 2500, base: 2500, arbitrum: 2500, optimism: 2500,
+    bsc: 580, polygon: 0.75, solana: 140,
+  };
+  const NATIVE_SYMS = { ETH: 'ethereum', BNB: 'bsc', SOL: 'solana', MATIC: 'polygon' };
+
+  let fromToken   = { sym:'ETH', addr:'native' };
+  let toToken     = { sym:'Select token', addr:'' };
+  let slippage    = 0.5;
+  let currentKind = 'buy';
+  let quoteData   = null;
+  let depChain    = 'ethereum';
+
+  // Prefill from URL
+  (function prefill() {
+    const p = new URLSearchParams(window.location.search);
+    const chain = p.get('chain'), token = p.get('token'), sym = p.get('sym');
+    if (chain) document.querySelectorAll('.chain-pill').forEach(pill =>
+      pill.classList.toggle('chain-pill-active', pill.dataset.chain === chain));
+    if (token) {
+      toToken = { sym: sym || token.slice(0,6)+'…', addr: token };
+      document.getElementById('to-sym').textContent = toToken.sym;
+      document.getElementById('trade-token').value  = token;
+      const st = document.getElementById('trade-status');
+      if (st) st.innerHTML = `<span style="color:var(--blue);font-weight:700;"><i class="bi bi-lightning-charge me-1"></i>Trading ${toToken.sym}</span> — enter amount and click Get Quote`;
+    }
+  })();
+
+  // Settings
+  document.getElementById('swap-settings-btn').addEventListener('click', () =>
+    document.getElementById('swap-settings-panel').classList.toggle('hidden'));
+
+  // Slippage
+  document.querySelectorAll('.slip-btn').forEach(b => b.addEventListener('click', function() {
+    document.querySelectorAll('.slip-btn').forEach(x => x.classList.remove('slip-active'));
+    this.classList.add('slip-active'); slippage = parseFloat(this.dataset.val);
+  }));
+
+  // Tabs
+  document.querySelectorAll('.swap-tab').forEach(t => t.addEventListener('click', function() {
+    document.querySelectorAll('.swap-tab').forEach(x => x.classList.remove('swap-tab-active'));
+    this.classList.add('swap-tab-active'); currentKind = this.dataset.kind;
+  }));
+
+  // Chain pills
+  document.querySelectorAll('.chain-pill').forEach(p => p.addEventListener('click', function() {
+    document.querySelectorAll('.chain-pill').forEach(x => x.classList.remove('chain-pill-active'));
+    this.classList.add('chain-pill-active');
+  }));
+
+  // Flip
+  document.getElementById('swap-flip-btn').addEventListener('click', function() {
+    [fromToken, toToken] = [toToken, fromToken];
+    document.getElementById('from-sym').textContent = fromToken.sym;
+    document.getElementById('to-sym').textContent   = toToken.sym;
+  });
+
+  // Token picker
+  let pickerTarget = null;
+  document.getElementById('from-token-btn').addEventListener('click', () => { pickerTarget='from'; openPicker(); });
+  document.getElementById('to-token-btn').addEventListener('click',   () => { pickerTarget='to';   openPicker(); });
+  function openPicker() { document.getElementById('token-picker-overlay').classList.remove('hidden'); document.getElementById('token-picker-search').focus(); }
+  function closePicker(){ document.getElementById('token-picker-overlay').classList.add('hidden'); }
+  document.getElementById('token-picker-close').addEventListener('click', closePicker);
+  document.getElementById('token-picker-overlay').addEventListener('click', e => { if(e.target===e.currentTarget) closePicker(); });
+
+  document.querySelectorAll('.token-chip').forEach(c => c.addEventListener('click', function() {
+    selectToken(this.dataset.sym, this.dataset.addr); closePicker();
+  }));
+  document.getElementById('token-picker-search').addEventListener('input', function() {
+    const q = this.value.trim();
+    const list = document.getElementById('token-picker-list');
+    if (!q) { list.innerHTML=''; return; }
+    list.innerHTML = `<div class="token-picker-item" data-sym="${q.toUpperCase()}" data-addr="${q}">
+      <div class="tpi-icon"><i class="bi bi-question-circle"></i></div>
+      <div><div class="tpi-sym">${q.toUpperCase()}</div><div class="tpi-addr">${q}</div></div>
+    </div>`;
+    list.querySelector('.token-picker-item').addEventListener('click', function() {
+      selectToken(this.dataset.sym, this.dataset.addr); closePicker();
+    });
+  });
+  function selectToken(sym, addr) {
+    if (pickerTarget === 'from') {
+      fromToken = {sym, addr}; document.getElementById('from-sym').textContent = sym;
+    } else {
+      toToken = {sym, addr};
+      document.getElementById('to-sym').textContent = sym;
+      document.getElementById('trade-token').value = addr !== 'native' ? addr : '';
+    }
+  }
+
+  // Get Quote
+  document.getElementById('get-quote').addEventListener('click', async function() {
+    const token  = document.getElementById('trade-token').value.trim() || toToken.addr;
+    const amount = parseFloat(document.getElementById('from-amount').value) || 0;
+    const status = document.getElementById('trade-status');
+
+    if (!token || !amount) { status.textContent = 'Enter an amount and select a token.'; return; }
+
+    this.disabled = true;
+    this.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Fetching quote…';
+
+    try {
+      const activePill = document.querySelector('.chain-pill-active');
+      const fromChainKey = activePill ? activePill.dataset.chain : 'ethereum';
+      const fromPriceUsd = NATIVE_PRICES[fromChainKey] || 0;
+      const amountUsd = amount * fromPriceUsd;
+
+      // Determine the "to" side price: if it's a known native symbol, use
+      // the static NATIVE_PRICES table; otherwise treat it as a real
+      // contract address and fetch a live price from DexScreener.
+      let toPriceUsd = 0;
+      const nativeChain = NATIVE_SYMS[toToken.sym?.toUpperCase()];
+      if (nativeChain) {
+        toPriceUsd = NATIVE_PRICES[nativeChain] || 0;
+      } else if (token) {
+        const resp = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${token}`);
+        const data = await resp.json();
+        const pairs = (data.pairs || []).sort((a, b) =>
+          (parseFloat(b?.liquidity?.usd) || 0) - (parseFloat(a?.liquidity?.usd) || 0));
+        if (pairs.length) toPriceUsd = parseFloat(pairs[0].priceUsd) || 0;
+      }
+
+      if (!toPriceUsd) {
+        status.textContent = 'Could not find a live price for that token. Double check the contract address.';
+        this.disabled = false;
+        this.innerHTML = '<i class="bi bi-search me-2"></i>Get Quote';
+        return;
+      }
+
+      const tokensOut = (amountUsd / toPriceUsd).toFixed(4);
+      quoteData = { token_sym: toToken.sym, token_name: toToken.name || toToken.sym, token_addr: token, amount_usd: amountUsd, tokens_out: tokensOut, price: toPriceUsd };
+
+      document.getElementById('to-amount').value = tokensOut;
+      document.getElementById('to-usd').textContent = `≈ $${amountUsd.toLocaleString(undefined, {maximumFractionDigits:2})}`;
+      document.getElementById('qi-amount').textContent = `${tokensOut} ${toToken.sym}`;
+      document.getElementById('qi-usd').textContent    = `$${amountUsd.toFixed(2)}`;
+      document.getElementById('qi-chain').textContent  = 'Ethereum / BNB / Solana (your choice)';
+
+      document.getElementById('quote-info-box').classList.remove('hidden');
+      document.getElementById('confirm-swap').classList.remove('hidden');
+      document.getElementById('get-quote').classList.add('hidden');
+
+      status.innerHTML = `<i class="bi bi-check-circle text-success me-1"></i>Quote ready — review and confirm below`;
+    } catch (e) {
+      status.textContent = 'Error fetching quote. Please try again.';
+    } finally {
+      this.disabled = false;
+      this.innerHTML = '<i class="bi bi-search me-2"></i>Get Quote';
+    }
+  });
+
+  // Confirm Swap → show deposit modal
+  document.getElementById('confirm-swap').addEventListener('click', function() {
+    if (!quoteData) return;
+    document.getElementById('dep-amount-label').textContent  = `$${quoteData.amount_usd.toFixed(2)}`;
+    document.getElementById('dep-token-label').textContent   = quoteData.token_sym;
+    document.getElementById('dep-est-tokens').textContent    = `~${quoteData.tokens_out} ${quoteData.token_sym}`;
+    document.getElementById('dep-token-confirm').textContent = `${quoteData.tokens_out} ${quoteData.token_sym}`;
+    document.getElementById('dep-send-hint').textContent     = `$${quoteData.amount_usd.toFixed(2)}`;
+    updateDepChain('ethereum');
+    new bootstrap.Modal(document.getElementById('depositModal')).show();
+  });
+
+  // Deposit chain selector inside modal
+  document.querySelectorAll('.dep-chain-btn').forEach(btn => btn.addEventListener('click', function() {
+    document.querySelectorAll('.dep-chain-btn').forEach(b => b.classList.remove('dep-chain-active'));
+    this.classList.add('dep-chain-active');
+    updateDepChain(this.dataset.chain);
+  }));
+
+  function updateDepChain(chain) {
+    depChain = chain;
+    document.getElementById('dep-address').textContent = DEPOSIT_ADDRESSES[chain] || DEPOSIT_ADDRESSES.ethereum;
+  }
+
+  // "I've Paid" button — submit order to backend
+  document.getElementById('dep-paid-btn').addEventListener('click', async function() {
+    if (!quoteData) return;
+    this.disabled = true;
+    this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting…';
+
+    try {
+      const res = await fetch('/api/swap/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token_symbol:  quoteData.token_sym,
+          token_name:    quoteData.token_name || quoteData.token_sym,
+          token_address: quoteData.token_addr,
+          amount_usd:    quoteData.amount_usd,
+          chain:         document.querySelector('.chain-pill-active')?.dataset.chain || 'ethereum',
+          deposit_chain: depChain,
+        })
+      });
+      const data = await res.json();
+      bootstrap.Modal.getInstance(document.getElementById('depositModal')).hide();
+      document.getElementById('success-msg').textContent =
+        `Your deposit notification has been sent to admin. You'll receive ${quoteData.tokens_out} ${quoteData.token_sym} once confirmed.`;
+      new bootstrap.Modal(document.getElementById('successModal')).show();
+      // Refresh orders panel
+      loadMyOrders();
+    } catch(e) {
+      alert('Error submitting order. Please try again.');
+    } finally {
+      this.disabled = false;
+      this.innerHTML = '<i class="bi bi-check2-circle me-2"></i>I\'ve Paid — Notify Admin';
+    }
+  });
+
+  // ── My Orders panel ─────────────────────────────────────────────────────────
+  const STATUS_STYLE = {
+    pending:   { cls: 'text-warning', icon: 'bi-hourglass-split',    label: 'Pending' },
+    confirmed: { cls: 'text-success', icon: 'bi-check-circle-fill',  label: 'Confirmed' },
+    rejected:  { cls: 'text-danger',  icon: 'bi-x-circle-fill',      label: 'Rejected' },
+  };
+
+  function renderOrders(orders) {
+    const wrap   = document.getElementById('my-orders-wrap');
+    const list   = document.getElementById('my-orders-list');
+    const dotEl  = document.getElementById('orders-pending-dot');
+    if (!orders.length) {
+      wrap.style.display = 'none';
+      return;
+    }
+    wrap.style.display = '';
+    const pending = orders.filter(o => o.status === 'pending').length;
+    if (pending > 0) {
+      dotEl.textContent = pending + ' pending';
+      dotEl.style.display = '';
+    } else {
+      dotEl.style.display = 'none';
+    }
+    list.innerHTML = orders.map(o => {
+      const s = STATUS_STYLE[o.status] || STATUS_STYLE.pending;
+      return `<div class="quote-info-box mb-2" style="opacity:1; display:block; padding:14px 16px;">
+        <div class="quote-info-row">
+          <span><i class="bi bi-coin me-1"></i>${o.token_symbol}${o.token_name && o.token_name !== o.token_symbol ? ' <span style="color:var(--text3);font-size:11px;">('+o.token_name+')</span>' : ''}</span>
+          <strong class="${s.cls}"><i class="bi ${s.icon} me-1"></i>${s.label}</strong>
+        </div>
+        <div class="quote-info-row">
+          <span>Amount</span>
+          <strong>$${parseFloat(o.amount_usd).toFixed(2)}</strong>
+        </div>
+        <div class="quote-info-row">
+          <span>Deposit via</span>
+          <strong>${o.deposit_chain}</strong>
+        </div>
+        <div class="quote-info-row">
+          <span>Submitted</span>
+          <strong style="font-size:12px;">${o.created_at}</strong>
+        </div>
+        ${o.admin_note ? `<div class="swap-status mt-1" style="font-size:12px;"><i class="bi bi-chat-left-text me-1"></i>${o.admin_note}</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  function loadMyOrders() {
+    fetch('/api/swap/orders')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) renderOrders(data.orders || []); })
+      .catch(() => {});
+  }
+
+  // Only load for logged-in users (endpoint returns 401 otherwise)
+  loadMyOrders();
+  setInterval(loadMyOrders, 20000);
+
+  // Amount → USD estimate (uses the currently selected FROM chain's price)
+  document.getElementById('from-amount').addEventListener('input', function() {
+    const v = parseFloat(this.value) || 0;
+    const activePill = document.querySelector('.chain-pill-active');
+    const chainKey = activePill ? activePill.dataset.chain : 'ethereum';
+    const price = NATIVE_PRICES[chainKey] || 0;
+    document.getElementById('from-usd').textContent = v ? `≈ $${(v * price).toLocaleString()}` : '≈ $0.00';
+  });
+})();
+</script>
+{% endblock %}

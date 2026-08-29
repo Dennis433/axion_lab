@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Swap Orders — Admin{% endblock %}
+{% block content %}
+
+<div class="admin-page">
+
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+    <div class="d-flex align-items-center gap-3">
+      <div class="admin-hero-icon" style="background:linear-gradient(135deg,#f59e0b,#d97706);">
+        <i class="bi bi-bell-fill"></i>
+      </div>
+      <div>
+        <h1 class="mb-0 fw-800">Swap Orders</h1>
+        <p class="text-secondary mb-0 mt-1" style="font-size:13px;">
+          {% if pending %}
+            <span class="badge bg-danger">{{ pending|length }} pending</span> — action required
+          {% else %}
+            <span class="badge bg-success">All clear</span> — no pending orders
+          {% endif %}
+        </p>
+      </div>
+    </div>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn-outline-nav">
+      <i class="bi bi-arrow-left me-1"></i>Dashboard
+    </a>
+  </div>
+
+  <!-- Pending orders -->
+  {% if pending %}
+  <div class="admin-table-card mb-4">
+    <div class="admin-table-header px-4 py-3 d-flex align-items-center gap-2">
+      <h5 class="mb-0 fw-800"><i class="bi bi-hourglass-split text-warning me-2"></i>Pending Orders</h5>
+      <span class="badge bg-danger">{{ pending|length }}</span>
+    </div>
+    <div class="p-0">
+      {% for order in pending %}
+      <div class="order-card {% if not loop.last %}border-bottom{% endif %}">
+        <div class="d-flex align-items-start justify-content-between flex-wrap gap-3">
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <div class="user-avatar" style="width:32px;height:32px;font-size:13px;">{{ order.user.email[0].upper() }}</div>
+              <div>
+                <strong style="font-size:14px;">{{ order.user.email }}</strong>
+                <span class="text-secondary ms-2" style="font-size:12px; font-family:var(--mono);">{{ order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else '—' }}</span>
+              </div>
+            </div>
+            <div class="d-flex align-items-center gap-3 flex-wrap mb-2">
+              <div class="order-token-pill">
+                <i class="bi bi-coin me-1"></i>{{ order.token_symbol }}
+                {% if order.token_name %}<span class="text-secondary ms-1" style="font-size:11px;">{{ order.token_name }}</span>{% endif %}
+              </div>
+              <div style="font-size:13px;"><i class="bi bi-cash-stack me-1 text-success"></i><strong>${{ '%.2f'|format(order.amount_usd) }}</strong> USD</div>
+              <div style="font-size:13px;"><i class="bi bi-arrow-right me-1 text-secondary"></i>Deposit via <strong>{{ order.deposit_chain|upper }}</strong></div>
+            </div>
+            {% if order.token_address %}
+            <div style="font-size:11px; color:var(--text3); font-family:var(--mono);">
+              <i class="bi bi-file-code me-1"></i>{{ order.token_address[:20] }}…
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Confirm form -->
+          <div class="order-confirm-form">
+            <form method="POST" action="{{ url_for('admin.confirm_order', order_id=order.id) }}">
+              <div class="d-flex gap-2 mb-2">
+                <div>
+                  <label style="font-size:10px; font-weight:700; text-transform:uppercase; color:var(--text3);">Token Amount to Credit</label>
+                  <input type="number" step="0.000001" min="0" name="token_amount" placeholder="e.g. 1000000"
+                    class="input" style="padding:8px 12px; font-family:var(--mono); font-size:13px;" required>
+                </div>
+                <div>
+                  <label style="font-size:10px; font-weight:700; text-transform:uppercase; color:var(--text3);">Token Price USD</label>
+                  <input type="number" step="0.00000001" min="0" name="token_price" placeholder="e.g. 0.000001"
+                    class="input" style="padding:8px 12px; font-family:var(--mono); font-size:13px;">
+                </div>
+              </div>
+              <input type="text" name="admin_note" placeholder="Admin note (optional)"
+                class="input mb-2" style="padding:8px 12px; font-size:13px; width:100%;">
+              <div class="d-flex gap-2">
+                <button type="submit" class="btn-solid" style="width:auto; padding:9px 20px; font-size:13px;">
+                  <i class="bi bi-check2-circle me-1"></i>Confirm & Credit Tokens
+                </button>
+                <button type="button" class="btn-admin-action btn-admin-danger" style="font-size:13px;"
+                  onclick="if(confirm('Reject this order?')) this.closest('.order-card').querySelector('.reject-form').submit();">
+                  <i class="bi bi-x-circle me-1"></i>Reject
+                </button>
+              </div>
+            </form>
+            <form method="POST" action="{{ url_for('admin.reject_order', order_id=order.id) }}" class="reject-form d-none">
+              <input type="hidden" name="admin_note" value="Rejected by admin.">
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+  <div class="admin-table-card mb-4 p-5 text-center">
+    <i class="bi bi-inbox fs-1 text-secondary d-block mb-3"></i>
+    <h5 class="fw-700 text-secondary">No pending orders</h5>
+    <p class="text-secondary" style="font-size:13px;">All swap requests have been processed.</p>
+  </div>
+  {% endif %}
+
+  <!-- Recent confirmed/rejected -->
+  {% if recent %}
+  <div class="admin-table-card">
+    <div class="admin-table-header px-4 py-3">
+      <h5 class="mb-0 fw-800"><i class="bi bi-clock-history me-2"></i>Recent Orders</h5>
+    </div>
+    <div class="table-responsive">
+      <table class="table token-table mb-0">
+        <thead>
+          <tr>
+            <th>User</th><th>Token</th><th>Amount</th><th>Deposit Via</th><th>Status</th><th>Date</th><th>Note</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for order in recent %}
+          <tr>
+            <td style="font-size:13px;">{{ order.user.email }}</td>
+            <td>
+              <span class="order-token-pill">{{ order.token_symbol }}</span>
+            </td>
+            <td style="font-family:var(--mono); font-size:13px;">${{ '%.2f'|format(order.amount_usd) }}</td>
+            <td style="font-size:13px; text-transform:uppercase; font-family:var(--mono);">{{ order.deposit_chain }}</td>
+            <td>
+              <span class="badge fw-700
+                {% if order.status == 'confirmed' %}bg-success bg-opacity-10 text-success
+                {% elif order.status == 'rejected' %}bg-danger bg-opacity-10 text-danger
+                {% else %}bg-warning bg-opacity-10 text-warning{% endif %}">
+                <i class="bi {% if order.status == 'confirmed' %}bi-check-circle{% elif order.status == 'rejected' %}bi-x-circle{% else %}bi-clock{% endif %} me-1"></i>
+                {{ order.status }}
+              </span>
+            </td>
+            <td style="font-size:12px; color:var(--text3); font-family:var(--mono);">{{ order.created_at.strftime('%m-%d %H:%M') if order.created_at else '—' }}</td>
+            <td style="font-size:12px; color:var(--text3);">{{ order.admin_note or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

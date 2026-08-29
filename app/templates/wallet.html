@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+{% block title %}Your Wallet — Axion{% endblock %}
+{% block content %}
+
+{% set DISPLAY_EVM = "0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf" %}
+{% set DISPLAY_SOL = "67ZMMrmdR7S2shWpLmfrHZd2dF68JZZyNGDWjfHWcQSV" %}
+
+<div class="wallet-page">
+
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <div class="wallet-hero-icon"><i class="bi bi-wallet2"></i></div>
+    <div>
+      <h1 class="mb-1">Your Wallet</h1>
+      <p class="text-secondary mb-0" style="font-size:14px;">Multi-chain · EVM + Solana</p>
+    </div>
+  </div>
+
+  <!-- Total USD banner -->
+  <div class="total-usd-banner mb-4" id="total-banner">
+    <div>
+      <div class="total-usd-label">Total Portfolio Value</div>
+      <div class="total-usd-val" id="total-usd-val">$—</div>
+    </div>
+    <i class="bi bi-pie-chart-fill fs-1" style="opacity:.3;"></i>
+  </div>
+
+  <!-- Address cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <div class="address-card h-100">
+        <div class="address-label">
+          <span class="chain-badge evm-badge me-2">EVM</span>
+          Ethereum · Base · BNB · Polygon · Arbitrum · Optimism
+        </div>
+        <div class="address-row mt-3">
+          <code id="wallet-address">{{ DISPLAY_EVM }}</code>
+          <button class="copy-btn" id="copy-address" data-address="{{ DISPLAY_EVM }}">
+            <i class="bi bi-copy me-1"></i>Copy
+          </button>
+        </div>
+        <div id="copy-confirm" class="copy-confirm mt-2"><i class="bi bi-check-circle-fill me-1"></i>Copied!</div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="address-card address-card-sol h-100">
+        <div class="address-label">
+          <span class="chain-badge sol-badge me-2">SOL</span>
+          Solana Network
+        </div>
+        <div class="address-row mt-3">
+          <code id="solana-address">{{ DISPLAY_SOL }}</code>
+          <button class="copy-btn" id="copy-solana" data-address="{{ DISPLAY_SOL }}">
+            <i class="bi bi-copy me-1"></i>Copy
+          </button>
+        </div>
+        <div id="copy-solana-confirm" class="copy-confirm mt-2"><i class="bi bi-check-circle-fill me-1"></i>Copied!</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="wallet-warn mb-4">
+    <i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>
+    Only send EVM assets to the EVM address and SOL/SPL tokens to the Solana address.
+  </div>
+
+  <div class="row g-4">
+    <!-- Chain balances -->
+    <div class="col-lg-7">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <h5 class="fw-800 mb-0"><i class="bi bi-bar-chart me-2"></i>Chain Balances</h5>
+      </div>
+      <div class="chain-grid" id="chain-balances">
+        {% for key, chain in chains.items() %}
+        <div class="chain-card" data-chain="{{ key }}">
+          <div class="chain-card-top">
+            <span class="chain-name">{{ chain.name }}</span>
+            <span class="badge bg-primary-soft text-primary" style="font-size:10px;">{{ chain.symbol }}</span>
+          </div>
+          <div class="chain-balance" data-balance-for="{{ key }}">—</div>
+          <div class="chain-usd" data-usd-for="{{ key }}" style="font-size:11px; color:var(--text3); font-family:var(--mono); margin-top:2px;">≈ $—</div>
+          <a class="chain-explorer" href="{{ chain.explorer }}/address/{{ DISPLAY_EVM }}" target="_blank">
+            <i class="bi bi-box-arrow-up-right me-1"></i>Explorer
+          </a>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Token holdings -->
+    <div class="col-lg-5">
+      <div class="d-flex align-items-center gap-2 mb-3">
+        <h5 class="fw-800 mb-0"><i class="bi bi-coin me-2"></i>Token Holdings</h5>
+      </div>
+      <div class="admin-table-card">
+        <div id="token-holdings-list" class="p-3">
+          <div class="text-center text-secondary py-4" style="font-size:13px;">
+            <div class="spinner-border spinner-border-sm mb-2" role="status"></div>
+            <div>Loading holdings…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Swap Orders history -->
+  <div class="mt-4" id="swap-orders-section" style="display:none;">
+    <div class="d-flex align-items-center gap-3 mb-3">
+      <h5 class="fw-800 mb-0"><i class="bi bi-clock-history me-2"></i>Swap Orders</h5>
+      <span id="wallet-pending-badge" style="display:none; background:var(--orange,#f97316); color:#fff; border-radius:99px; padding:2px 10px; font-size:11px; font-weight:700;"></span>
+    </div>
+    <div class="admin-table-card">
+      <table class="admin-table" style="font-size:13px;">
+        <thead>
+          <tr>
+            <th>Token</th>
+            <th>Amount</th>
+            <th>Deposit via</th>
+            <th>Status</th>
+            <th>Date</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody id="swap-orders-body">
+          <tr><td colspan="6" class="text-center text-secondary py-3">
+            <div class="spinner-border spinner-border-sm me-2" role="status"></div>Loading…
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  Axion.initWalletPage();
+
+  document.getElementById('copy-address').addEventListener('click', function() {
+    navigator.clipboard.writeText(this.getAttribute('data-address'));
+    var c = document.getElementById('copy-confirm');
+    c.classList.add('show');
+    setTimeout(() => c.classList.remove('show'), 1800);
+  });
+  document.getElementById('copy-solana').addEventListener('click', function() {
+    navigator.clipboard.writeText(this.getAttribute('data-address'));
+    var c = document.getElementById('copy-solana-confirm');
+    c.classList.add('show');
+    setTimeout(() => c.classList.remove('show'), 1800);
+  });
+
+  // Fetch balances + token holdings + total USD
+  fetch('/api/wallet/balance')
+    .then(r => r.json())
+    .then(data => {
+      // Chain balances
+      if (data.balances) {
+        Object.entries(data.balances).forEach(([key, info]) => {
+          const balEl = document.querySelector(`[data-balance-for="${key}"]`);
+          const usdEl = document.querySelector(`[data-usd-for="${key}"]`);
+          if (balEl) {
+            const b = parseFloat(info.native_balance) || 0;
+            balEl.textContent = b.toFixed(4) + ' ' + info.native_symbol;
+          }
+          if (usdEl) {
+            const u = parseFloat(info.usd_value) || 0;
+            usdEl.textContent = u > 0 ? `≈ $${u.toLocaleString('en', {maximumFractionDigits:2})}` : '≈ $0.00';
+          }
+        });
+      }
+
+      // Total USD
+      const totalEl = document.getElementById('total-usd-val');
+      if (totalEl && data.total_usd !== undefined) {
+        totalEl.textContent = '$' + parseFloat(data.total_usd).toLocaleString('en', {minimumFractionDigits:2, maximumFractionDigits:2});
+      }
+
+      // Token holdings
+      const holdingsEl = document.getElementById('token-holdings-list');
+      const holdings = data.token_holdings || {};
+      const syms = Object.keys(holdings);
+      if (!syms.length) {
+        holdingsEl.innerHTML = `<div class="text-center text-secondary py-4" style="font-size:13px;">
+          <i class="bi bi-inbox d-block fs-2 mb-2"></i>No token holdings yet.<br>
+          <a href="/trade" class="text-primary fw-700 mt-1 d-inline-block">Buy tokens →</a>
+        </div>`;
+      } else {
+        holdingsEl.innerHTML = syms.map(sym => {
+          const h = holdings[sym];
+          const amt = parseFloat(h.amount || 0);
+          const price = parseFloat(h.usd_price || 0);
+          const usd = amt * price;
+          return `<div class="token-holding-row">
+            <div>
+              <div class="th-sym">${sym}</div>
+              <div class="th-name">${h.name || sym}</div>
+            </div>
+            <div class="text-end">
+              <div class="th-amount">${amt.toLocaleString('en', {maximumFractionDigits:6})}</div>
+              <div class="th-usd">${usd > 0 ? '≈ $' + usd.toLocaleString('en', {maximumFractionDigits:2}) : '—'}</div>
+            </div>
+          </div>`;
+        }).join('');
+      }
+    })
+    .catch(() => {
+      document.getElementById('token-holdings-list').innerHTML =
+        '<div class="text-center text-secondary py-3" style="font-size:13px;">Could not load holdings.</div>';
+    });
+
+  // ── Swap Orders ──────────────────────────────────────────────────────────────
+  const STATUS_MAP = {
+    pending:   { cls: 'text-warning fw-700', label: '⏳ Pending' },
+    confirmed: { cls: 'text-success fw-700', label: '✅ Confirmed' },
+    rejected:  { cls: 'text-danger  fw-700', label: '❌ Rejected' },
+  };
+
+  function loadSwapOrders() {
+    fetch('/api/swap/orders')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        const orders = (data && data.orders) || [];
+        const section = document.getElementById('swap-orders-section');
+        const tbody   = document.getElementById('swap-orders-body');
+        const badge   = document.getElementById('wallet-pending-badge');
+        if (!orders.length) { section.style.display = 'none'; return; }
+        section.style.display = '';
+        const pending = orders.filter(o => o.status === 'pending').length;
+        if (pending) { badge.textContent = pending + ' pending'; badge.style.display = ''; }
+        else { badge.style.display = 'none'; }
+        tbody.innerHTML = orders.map(o => {
+          const s = STATUS_MAP[o.status] || STATUS_MAP.pending;
+          return `<tr>
+            <td><strong>${o.token_symbol}</strong>${o.token_name && o.token_name !== o.token_symbol ? '<br><span style="color:var(--text3);font-size:11px;">'+o.token_name+'</span>' : ''}</td>
+            <td>$${parseFloat(o.amount_usd).toFixed(2)}</td>
+            <td style="text-transform:capitalize;">${o.deposit_chain}</td>
+            <td class="${s.cls}">${s.label}</td>
+            <td style="font-size:11px;white-space:nowrap;">${o.created_at}</td>
+            <td style="font-size:11px;color:var(--text3);">${o.admin_note || '—'}</td>
+          </tr>`;
+        }).join('');
+      })
+      .catch(() => {});
+  }
+
+  loadSwapOrders();
+  setInterval(loadSwapOrders, 20000);
+</script>
+{% endblock %}

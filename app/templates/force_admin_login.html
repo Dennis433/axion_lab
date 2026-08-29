@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Admin Login — Axion{% endblock %}
+{% block content %}
+<section class="auth-page">
+  <div class="auth-card">
+    <div class="text-center mb-4">
+      <div class="auth-logo mx-auto mb-3" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);">A</div>
+      <h1 class="auth-title">Admin Access</h1>
+      <p class="auth-sub">Restricted — authorized administrator only</p>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-danger d-flex align-items-center gap-2" style="border-radius:12px; font-size:13px; padding:12px 16px;">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    <form method="post">
+      <div class="mb-3">
+        <label class="field-label"><i class="bi bi-envelope me-1"></i>Admin Email</label>
+        <div class="input-group-enhanced">
+          <i class="bi bi-envelope input-icon"></i>
+          <input class="input input-with-icon" type="email" name="email" placeholder="admin@example.com" required autocomplete="username">
+        </div>
+      </div>
+      <div class="mb-4">
+        <label class="field-label"><i class="bi bi-lock me-1"></i>Password</label>
+        <div class="input-group-enhanced">
+          <i class="bi bi-lock input-icon"></i>
+          <input class="input input-with-icon" type="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+      </div>
+      <button class="btn-solid btn-full" type="submit" style="background:linear-gradient(135deg,#6366f1,#8b5cf6); border:none;">
+        <i class="bi bi-shield-lock me-2"></i>Sign in to Admin
+      </button>
+    </form>
+  </div>
+</section>
+{% endblock %}

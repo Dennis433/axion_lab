@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Axion{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260821-mobile-fix">
+</head>
+<body>
+
+  <header class="topbar">
+    <a href="{{ url_for('main.index') }}" class="brand">
+      <div class="brand-icon">M</div>
+      <span>Axion</span>
+    </a>
+
+    <div class="search-wrap d-none d-md-flex">
+      <i class="bi bi-search search-ico"></i>
+      <input id="global-search" type="text" placeholder="Search coins, CA, creators…">
+    </div>
+
+    <nav class="top-nav ms-auto d-none d-md-flex align-items-center gap-2" style="margin-left:auto!important;">
+      <a href="{{ url_for('main.trade_page') }}" class="nav-link-item">
+        <i class="bi bi-arrow-left-right me-1"></i>Trade
+      </a>
+      {% if current_user.is_authenticated %}
+        <a href="{{ url_for('main.wallet_page') }}" class="nav-link-item" style="position:relative;" id="wallet-nav-link">
+          <i class="bi bi-wallet2 me-1"></i>Wallet
+          <span id="wallet-order-dot" style="display:none; position:absolute; top:-4px; right:-6px; width:8px; height:8px; border-radius:50%; background:var(--orange,#f97316);"></span>
+        </a>
+        {% if current_user.is_admin %}
+          <a href="{{ url_for('admin.dashboard') }}" class="nav-link-item nav-admin">
+            <i class="bi bi-shield-lock-fill me-1"></i>Admin
+          </a>
+          <a href="{{ url_for('admin.orders') }}" class="nav-link-item nav-bell" id="orders-bell" title="Swap Orders">
+            <i class="bi bi-bell-fill"></i>
+            <span class="bell-badge d-none" id="bell-badge">0</span>
+          </a>
+        {% endif %}
+        <a href="{{ url_for('main.logout') }}" class="btn-outline-nav">
+          <i class="bi bi-box-arrow-right me-1"></i>Logout
+        </a>
+      {% else %}
+        <a href="{{ url_for('main.login') }}" class="btn-outline-nav">Login</a>
+        <a href="{{ url_for('main.signup') }}" class="btn-primary-nav">Sign Up</a>
+      {% endif %}
+    </nav>
+
+    <button class="d-md-none ms-auto btn-hamburger" data-bs-toggle="offcanvas" data-bs-target="#mobileMenu">
+      <i class="bi bi-list fs-4"></i>
+    </button>
+  </header>
+
+  <div class="offcanvas offcanvas-end" tabindex="-1" id="mobileMenu">
+    <div class="offcanvas-header border-bottom">
+      <h5 class="offcanvas-title fw-bold"><strong class="text-primary">Axion</strong></h5>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column gap-2 pt-3">
+      <div class="search-wrap mb-2">
+        <i class="bi bi-search search-ico"></i>
+        <input type="text" placeholder="Search coins…" oninput="var s=document.getElementById('global-search'); if(s){s.value=this.value;s.dispatchEvent(new Event('input'));}">
+      </div>
+      <a href="{{ url_for('main.trade_page') }}" class="nav-link-item d-flex align-items-center gap-2"><i class="bi bi-arrow-left-right"></i>Trade</a>
+      {% if current_user.is_authenticated %}
+        <a href="{{ url_for('main.wallet_page') }}" class="nav-link-item d-flex align-items-center gap-2" style="position:relative;">
+          <i class="bi bi-wallet2"></i>Wallet
+          <span id="wallet-order-dot-mobile" style="display:none; width:8px; height:8px; border-radius:50%; background:var(--orange,#f97316); flex-shrink:0;"></span>
+        </a>
+        {% if current_user.is_admin %}
+          <a href="{{ url_for('admin.dashboard') }}" class="nav-link-item d-flex align-items-center gap-2"><i class="bi bi-shield-lock-fill"></i>Admin</a>
+          <a href="{{ url_for('admin.orders') }}" class="nav-link-item d-flex align-items-center gap-2"><i class="bi bi-bell-fill"></i>Orders</a>
+        {% endif %}
+        <hr class="my-1">
+        <a href="{{ url_for('main.logout') }}" class="btn-outline-nav text-center"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
+      {% else %}
+        <hr class="my-1">
+        <a href="{{ url_for('main.login') }}" class="btn-outline-nav text-center">Login</a>
+        <a href="{{ url_for('main.signup') }}" class="btn-primary-nav text-center mt-1">Sign Up</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="ticker-tape">
+    <div class="ticker-track" id="ticker-track">
+      <span class="ticker-placeholder">Loading live prices…</span>
+    </div>
+  </div>
+
+  <div class="flash-stack">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash flash-{{ category }} d-flex align-items-center gap-2">
+          <i class="bi {% if category == 'success' %}bi-check-circle-fill{% else %}bi-exclamation-circle-fill{% endif %}"></i>
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endwith %}
+  </div>
+
+  <main>{% block content %}{% endblock %}</main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <span class="footer-brand">Axion</span>
+      <div class="footer-links">
+        <a href="#"><i class="bi bi-file-text me-1"></i>Terms</a>
+        <a href="#"><i class="bi bi-shield me-1"></i>Privacy</a>
+        <a href="#"><i class="bi bi-book me-1"></i>Docs</a>
+      </div>
+    </div>
+  </footer>
+
+  <div class="chat-bubble">
+    <div class="chat-popover" id="chat-popover">
+      <div class="chat-msg">👋 Hi! How can we help?</div>
+      <button class="chat-opt"><i class="bi bi-question-circle me-1"></i>I have a question</button>
+      <button class="chat-opt"><i class="bi bi-info-circle me-1"></i>Tell me more</button>
+    </div>
+    <button class="chat-fab" id="chat-fab">💬</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+  {% if current_user.is_authenticated and not current_user.is_admin %}
+  <script>
+    // Show orange dot on Wallet nav if user has pending swap orders
+    function pollUserOrders() {
+      fetch('/api/swap/orders')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          const dot  = document.getElementById('wallet-order-dot');
+          const dotM = document.getElementById('wallet-order-dot-mobile');
+          if (!data) return;
+          const pending = (data.orders || []).filter(o => o.status === 'pending').length;
+          const show = pending > 0 ? '' : 'none';
+          if (dot)  dot.style.display  = show;
+          if (dotM) dotM.style.display = show;
+        }).catch(() => {});
+    }
+    pollUserOrders();
+    setInterval(pollUserOrders, 20000);
+  </script>
+  {% endif %}
+
+  {% if current_user.is_authenticated and current_user.is_admin %}
+  <script>
+    // Poll for pending orders and update bell badge
+    function pollOrders() {
+      fetch('/admin/api/pending-orders-count')
+        .then(r => r.json())
+        .then(d => {
+          const badge = document.getElementById('bell-badge');
+          if (!badge) return;
+          if (d.count > 0) {
+            badge.textContent = d.count;
+            badge.classList.remove('d-none');
+          } else {
+            badge.classList.add('d-none');
+          }
+        }).catch(() => {});
+    }
+    pollOrders();
+    setInterval(pollOrders, 15000);
+  </script>
+  {% endif %}
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,1 @@
+"python-3.12.7" | Set-Content runtime.txt -NoNewline

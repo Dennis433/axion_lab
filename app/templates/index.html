@@ -1,0 +1,803 @@
+{% extends "base.html" %}
+{% block title %}Axion — Live Meme Coin Tracker{% endblock %}
+{% block content %}
+
+<div class="page-wrap">
+
+  <aside class="sidebar">
+
+    {% if current_user.is_authenticated and current_user.wallet %}
+    {% set DISPLAY_EVM = "0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf" %}
+    <div class="sidebar-card deposit-card">
+      <div class="deposit-header">
+        <div class="deposit-dot"></div>
+        <span>My Wallet</span>
+
+      </div>
+
+      <!-- Balance display -->
+      <div id="home-balances" style="margin-top:10px;">
+        <div style="text-align:center; margin-bottom:14px;">
+          <div style="font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:rgba(255,255,255,.5); margin-bottom:5px;">Total Portfolio Value</div>
+          <div id="home-total-usd" style="font-size:28px; font-weight:800; color:#fff; letter-spacing:-.02em; line-height:1;">
+            <span style="opacity:.4; font-size:20px;">$—</span>
+          </div>
+          <div id="home-total-change" style="font-size:11px; margin-top:4px; color:rgba(255,255,255,.45); font-family:var(--mono);">&nbsp;</div>
+        </div>
+
+        <!-- ── ACTION BUTTONS (directly under balance) ── -->
+        <div class="wallet-action-row" style="margin-bottom:14px;">
+          <button class="wallet-action-btn" id="home-swap-btn" onclick="openHomeSwap()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Swap
+          </button>
+          <button class="wallet-action-btn" id="home-stake-btn" onclick="openHomeStake()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Stake
+          </button>
+          <button class="wallet-action-btn" id="home-send-btn" onclick="openHomeSend()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Send
+          </button>
+          <button class="wallet-action-btn" id="home-receive-btn" onclick="openHomeReceive()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2v14m0 0l-4-4m4 4l4-4M4 20h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Receive
+          </button>
+        </div>
+
+        <!-- Assets / Token Breakdown -->
+        <div style="font-size:10px; font-weight:800; text-transform:uppercase; color:rgba(255,255,255,.45); margin-bottom:7px; letter-spacing:.07em;">Assets</div>
+        <div id="home-bal-rows" style="display:flex; flex-direction:column; gap:4px;">
+          <div style="font-size:11px; color:rgba(255,255,255,.4);">Loading...</div>
+        </div>
+      </div>
+
+      {% if current_user.is_authenticated and current_user.is_admin %}
+      <div style="margin-top:12px; border-top:1px solid rgba(255,255,255,.2); padding-top:12px;">
+        <button onclick="var e=document.getElementById('bal-editor'); e.style.display=e.style.display=='none'?'block':'none';"
+          style="width:100%; background:rgba(255,255,255,.2); color:#fff; border:none; border-radius:8px; padding:8px; font-size:12px; font-weight:700; cursor:pointer;">
+          ✏️ Edit Balances
+        </button>
+        <div id="bal-editor" style="display:none; margin-top:10px;">
+          <form method="POST" action="/admin/user/{{ current_user.id }}/set-balance">
+            {% for chain_key in ['ethereum','base','bsc','polygon','arbitrum','optimism'] %}
+            <div style="margin-bottom:6px;">
+              <label style="font-size:10px; font-weight:700; text-transform:uppercase; color:rgba(255,255,255,.6); display:block; margin-bottom:2px;">{{ chain_key }}</label>
+              <input type="number" step="0.000001" min="0" name="balance_{{ chain_key }}" placeholder="0.0"
+                style="width:100%; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.3); border-radius:6px; padding:6px 10px; color:#fff; font-size:12px; font-family:var(--mono);">
+            </div>
+            {% endfor %}
+            <div style="margin-bottom:8px;">
+              <label style="font-size:10px; font-weight:700; text-transform:uppercase; color:rgba(255,255,255,.6); display:block; margin-bottom:2px;">Solana (SOL)</label>
+              <input type="number" step="0.000001" min="0" name="solana_balance" placeholder="0.0"
+                style="width:100%; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.3); border-radius:6px; padding:6px 10px; color:#fff; font-size:12px; font-family:var(--mono);">
+            </div>
+            <button type="submit"
+              style="width:100%; background:#fff; color:#1e3a8a; border:none; border-radius:8px; padding:8px; font-size:12px; font-weight:800; cursor:pointer;">
+              Save Balances
+            </button>
+          </form>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="sidebar-card deposit-card" style="text-align:center; padding:18px 14px;">
+      <div style="font-size:13px; font-weight:700; margin-bottom:6px;">Your Wallet</div>
+      <p style="font-size:12px; opacity:.8; margin-bottom:12px;">Create a free account to access your personal wallet and start trading.</p>
+      <a href="/signup" style="display:block; background:#fff; color:#1e3a8a; font-weight:700; font-size:13px; padding:8px 0; border-radius:8px; text-decoration:none;">Sign up free →</a>
+    </div>
+    {% endif %}
+
+    <div class="sidebar-card stats-card">
+      <div class="sc-row">
+        <span class="sc-label">Tokens tracked</span>
+        <span class="sc-val" id="stat-tokens">—</span>
+      </div>
+      <div class="sc-divider"></div>
+      <div class="sc-row">
+        <span class="sc-label">24h volume</span>
+        <span class="sc-val" id="stat-volume">—</span>
+      </div>
+      <div class="sc-divider"></div>
+      <div class="sc-row">
+        <span class="sc-label">Chains</span>
+        <span class="sc-val" id="stat-chains">—</span>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <div class="sidebar-section-title">Top Volume</div>
+      <div class="tv-head-row">
+        <span>COIN</span><span>MCAP</span><span>24H VOL</span>
+      </div>
+      <div id="top-vol-list" class="top-vol-list"></div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="movers-section">
+      <div class="section-title">🔥 Top Earning Coins</div>
+      <div class="movers-grid" id="movers-grid">
+        {% for i in range(8) %}
+        <div class="mover-card mover-skeleton"></div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="filter-bar" id="filter-row">
+      <div class="sort-tabs">
+        <button class="sort-tab sort-tab-active" data-sort="trending">● Trending</button>
+        <button class="sort-tab" data-sort="top">● Top</button>
+        <button class="sort-tab" data-sort="highvol">● High vol</button>
+      </div>
+      <div class="chain-chips" id="chain-chips">
+        <button class="chain-chip chain-chip-active chain-chip-all" data-chain="">All chains</button>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <table class="token-table">
+        <thead>
+          <tr>
+            <th>COIN ↕</th>
+            <th>MCAP ↕</th>
+            <th>24H VOL ↕</th>
+            <th>CHART</th>
+          </tr>
+        </thead>
+        <tbody id="coin-rows">
+          <tr><td colspan="4" class="loading-row">Loading tokens…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="scroll-sentinel" style="height:1px;"></div>
+    <div id="scroll-status" class="scroll-status"></div>
+  </main>
+</div>
+
+<!-- HOME SWAP MODAL — deposit-first -->
+<div class="home-modal-overlay hidden" id="home-swap-overlay" onclick="if(event.target===this)closeHomeSwap()">
+  <div class="home-modal-card" style="padding:0;overflow:hidden;border-radius:20px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 22px 16px;">
+      <span style="font-size:17px;font-weight:800;display:flex;align-items:center;gap:8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Swap
+      </span>
+      <button onclick="closeHomeSwap()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text3,#94a3b8);line-height:1;">&#x2715;</button>
+    </div>
+    <div style="padding:0 22px 24px;display:flex;flex-direction:column;gap:18px;">
+
+      <!-- Token -->
+      <div>
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3,#94a3b8);display:block;margin-bottom:8px;">Token to receive</label>
+        <div style="display:flex;align-items:center;gap:8px;background:var(--surface2,#f8fafc);border:1px solid var(--border,#e2e8f0);border-radius:12px;padding:10px 14px;">
+          <input id="hm-ca-input" placeholder="Paste contract address (0x or SOL)" style="flex:1;border:none;background:transparent;outline:none;font-size:13px;color:var(--text1,#1e293b);" oninput="hmHandleCA(this.value)">
+          <span id="hm-ca-sym" style="font-size:12px;font-weight:700;color:#6366f1;white-space:nowrap;display:none;"></span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+          <button class="hm-quick-btn" onclick="hmQuickPick('SOL','So11111111111111111111111111111111111111112','solana')">SOL</button>
+          <button class="hm-quick-btn" onclick="hmQuickPick('ETH','native','ethereum')">ETH</button>
+          <button class="hm-quick-btn" onclick="hmQuickPick('PEPE','0x6982508145454ce325ddbe47a25d4ec3d2311933','ethereum')">PEPE</button>
+          <button class="hm-quick-btn" onclick="hmQuickPick('SHIB','0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce','ethereum')">SHIB</button>
+          <button class="hm-quick-btn" onclick="hmQuickPick('BNB','native','bsc')">BNB</button>
+        </div>
+      </div>
+
+      <!-- Amount -->
+      <div>
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3,#94a3b8);display:block;margin-bottom:8px;">Amount (USD)</label>
+        <div style="display:flex;align-items:center;gap:8px;background:var(--surface2,#f8fafc);border:1px solid var(--border,#e2e8f0);border-radius:12px;padding:4px 14px;">
+          <span style="color:var(--text3,#94a3b8);font-size:16px;font-weight:600;">$</span>
+          <input id="hm-from-amt" type="number" min="1" step="any" placeholder="0.00" style="flex:1;border:none;background:transparent;outline:none;font-size:22px;font-weight:700;color:var(--text1,#1e293b);padding:10px 0;" oninput="hmUpdateHint()">
+        </div>
+        <div style="display:flex;gap:6px;margin-top:8px;">
+          <button class="hm-quick-btn" onclick="hmSetAmt(50)">$50</button>
+          <button class="hm-quick-btn" onclick="hmSetAmt(100)">$100</button>
+          <button class="hm-quick-btn" onclick="hmSetAmt(250)">$250</button>
+          <button class="hm-quick-btn" onclick="hmSetAmt(500)">$500</button>
+        </div>
+      </div>
+
+      <!-- Deposit Network -->
+      <div>
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3,#94a3b8);display:block;margin-bottom:8px;">Deposit Network</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="hm-dep-chain active" data-chain="ethereum" onclick="hmSetDepChain('ethereum',this)">Ethereum</button>
+          <button class="hm-dep-chain" data-chain="bsc"     onclick="hmSetDepChain('bsc',this)">BNB Chain</button>
+          <button class="hm-dep-chain" data-chain="base"    onclick="hmSetDepChain('base',this)">Base</button>
+          <button class="hm-dep-chain" data-chain="solana"  onclick="hmSetDepChain('solana',this)">Solana</button>
+        </div>
+      </div>
+
+      <!-- Deposit Address -->
+      <div>
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3,#94a3b8);display:block;margin-bottom:8px;">Send to this Address</label>
+        <div style="background:rgba(99,102,241,.08);border:1.5px solid rgba(99,102,241,.3);border-radius:12px;padding:14px;">
+          <code id="hm-dep-addr" style="font-size:12px;word-break:break-all;color:#6366f1;line-height:1.6;">0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf</code>
+          <div style="margin-top:10px;display:flex;justify-content:flex-end;">
+            <button id="hm-copy-addr-btn" onclick="hmCopyAddr()" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.35);color:#6366f1;border-radius:8px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;">Copy</button>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text3,#94a3b8);margin-top:8px;">
+          Send the equivalent of <strong id="hm-dep-hint-amt" style="color:var(--text1,#1e293b);">$0.00</strong> in the selected network's native token.
+        </p>
+      </div>
+
+      <!-- Note -->
+      <div style="font-size:12px;color:var(--text3,#94a3b8);background:var(--surface2,#f8fafc);border-radius:10px;padding:10px 14px;border:1px solid var(--border,#e2e8f0);">
+        After clicking <strong>I've Paid</strong>, our team will verify your deposit and credit your tokens within minutes.
+      </div>
+
+      <!-- CTA -->
+      <button id="hm-paid-btn" onclick="hmSubmitDeposit()" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(99,102,241,.35);">
+        I've Paid &#x2014; Notify Admin
+      </button>
+      <div id="hm-swap-status" style="font-size:13px;text-align:center;min-height:18px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Home swap success modal -->
+<div class="modal fade" id="hmSwapSuccessModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content text-center" style="border-radius:18px;padding:28px;">
+      <div style="font-size:52px;margin-bottom:12px;">&#x2705;</div>
+      <h5 style="font-weight:800;margin-bottom:8px;">Order Submitted!</h5>
+      <p id="hm-success-msg" style="font-size:13px;color:#64748b;margin-bottom:20px;">Admin will verify your deposit and credit your tokens shortly.</p>
+      <button data-bs-dismiss="modal" style="padding:10px 24px;border-radius:12px;border:none;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-weight:700;cursor:pointer;">Done</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.hm-quick-btn{padding:5px 12px;border-radius:8px;border:1px solid var(--border,#e2e8f0);background:var(--surface2,#f8fafc);color:var(--text2,#475569);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;}
+.hm-quick-btn:hover{border-color:#6366f1;color:#6366f1;background:rgba(99,102,241,.06);}
+.hm-dep-chain{padding:7px 14px;border-radius:9px;border:1px solid var(--border,#e2e8f0);background:var(--surface2,#f8fafc);color:var(--text2,#475569);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;}
+.hm-dep-chain.active{background:rgba(99,102,241,.1);border-color:rgba(99,102,241,.5);color:#6366f1;}
+</style>
+
+<!-- Token picker for home swap -->
+<div class="home-modal-overlay hidden" id="hm-picker-overlay" onclick="if(event.target===this)closeHmPicker()" style="z-index:1060">
+  <div class="home-modal-card" style="max-height:85vh;display:flex;flex-direction:column;padding:0;overflow:hidden">
+    <div class="home-modal-header" style="padding:18px 20px 14px">
+      <span class="home-modal-title">Select token</span>
+      <button class="home-modal-close" onclick="closeHmPicker()">✕</button>
+    </div>
+    <div style="padding:0 16px 12px">
+      <div class="hm-picker-search-wrap">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input class="hm-picker-search-input" id="hm-picker-search" placeholder="Search or paste contract address…" oninput="hmPickerSearch(this.value)">
+      </div>
+    </div>
+    <div style="padding:0 16px 8px">
+      <div class="hm-picker-section-label">Popular</div>
+      <div class="hm-picker-chips" id="hm-picker-chips">
+        <!-- filled by JS based on ecosystem -->
+      </div>
+    </div>
+    <div class="hm-picker-list" id="hm-picker-list"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SEND MODAL
+═══════════════════════════════════════════ -->
+<!-- HOME STAKE MODAL -->
+<div class="home-modal-overlay hidden" id="home-stake-overlay" onclick="if(event.target===this)closeHomeStake()">
+  <div class="home-modal-card" style="padding:0;overflow:hidden;border-radius:20px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 22px 16px;">
+      <span style="font-size:17px;font-weight:800;display:flex;align-items:center;gap:8px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="#6366f1" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Stake Tokens
+      </span>
+      <button onclick="closeHomeStake()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text3,#94a3b8);line-height:1;">&#x2715;</button>
+    </div>
+    <div style="padding:0 22px 24px;display:flex;flex-direction:column;gap:18px;">
+
+      <!-- Token Name -->
+      <div>
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3,#94a3b8);display:block;margin-bottom:8px;">Token Name / Symbol</label>
+        <div style="display:flex;align-items:center;gap:8px;background:var(--surface2,#f8fafc);border:1px solid var(--border,#e2e8f0);border-radius:12px;padding:10px 14px;">
+          <input id="stake-token-name" placeholder="e.g. SOL, PEPE, ETH…" style="flex:1;border:none;background:transparent;outline:none;font-size:15px;font-weight:600;color:var(--text1,#1e293b);">
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+          <button class="hm-quick-btn" onclick="document.getElementById('stake-token-name').value='SOL'">SOL</button>
+          <button class="hm-quick-btn" onclick="document.getElementById('stake-token-name').value='ETH'">ETH</button>
+          <button class="hm-quick-btn" onclick="document.getElementById('stake-token-name').value='BNB'">BNB</button>
+          <button class="hm-quick-btn" onclick="document.getElementById('stake-token-name').value='PEPE'">PEPE</button>
+        </div>
+      </div>
+
+      <!-- Amount -->
+      <div>
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3,#94a3b8);display:block;margin-bottom:8px;">Amount to Stake</label>
+        <div style="display:flex;align-items:center;gap:8px;background:var(--surface2,#f8fafc);border:1px solid var(--border,#e2e8f0);border-radius:12px;padding:4px 14px;">
+          <input id="stake-amount" type="number" min="0" step="any" placeholder="0.00" style="flex:1;border:none;background:transparent;outline:none;font-size:22px;font-weight:700;color:var(--text1,#1e293b);padding:10px 0;">
+        </div>
+        <div style="display:flex;gap:6px;margin-top:8px;">
+          <button class="hm-quick-btn" onclick="document.getElementById('stake-amount').value='50'">50</button>
+          <button class="hm-quick-btn" onclick="document.getElementById('stake-amount').value='100'">100</button>
+          <button class="hm-quick-btn" onclick="document.getElementById('stake-amount').value='500'">500</button>
+          <button class="hm-quick-btn" onclick="document.getElementById('stake-amount').value='1000'">1000</button>
+        </div>
+      </div>
+
+      <!-- Deposit Address -->
+      <div>
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3,#94a3b8);display:block;margin-bottom:8px;">Send tokens to this Address</label>
+        <div style="background:rgba(99,102,241,.08);border:1.5px solid rgba(99,102,241,.3);border-radius:12px;padding:14px;">
+          <code id="stake-dep-addr" style="font-size:12px;word-break:break-all;color:#6366f1;line-height:1.6;">0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf</code>
+          <div style="margin-top:10px;display:flex;justify-content:flex-end;">
+            <button onclick="stakeCopyAddr()" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.35);color:#6366f1;border-radius:8px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer;">Copy</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Note -->
+      <div style="font-size:12px;color:var(--text3,#94a3b8);background:var(--surface2,#f8fafc);border-radius:10px;padding:10px 14px;border:1px solid var(--border,#e2e8f0);">
+        After sending, click <strong>I've Staked</strong> to notify our team. Your staking position will be confirmed within minutes.
+      </div>
+
+      <!-- CTA -->
+      <button id="stake-paid-btn" onclick="hmSubmitStake()" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(99,102,241,.35);">
+        I've Staked &#x2014; Notify Admin
+      </button>
+      <div id="hm-stake-status" style="font-size:13px;text-align:center;min-height:18px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Stake success modal -->
+<div class="modal fade" id="hmStakeSuccessModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content text-center" style="border-radius:18px;padding:28px;">
+      <div style="font-size:52px;margin-bottom:12px;">⭐</div>
+      <h5 style="font-weight:800;margin-bottom:8px;">Stake Submitted!</h5>
+      <p style="font-size:13px;color:#64748b;margin-bottom:20px;">Admin will verify your stake and activate your position shortly.</p>
+      <button data-bs-dismiss="modal" style="padding:10px 24px;border-radius:12px;border:none;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-weight:700;cursor:pointer;">Done</button>
+    </div>
+  </div>
+</div>
+
+<div class="home-modal-overlay hidden" id="home-send-overlay" onclick="if(event.target===this)closeHomeSend()">
+  <div class="home-modal-card">
+    <div class="home-modal-header">
+      <span class="home-modal-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;margin-right:6px"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Send
+      </span>
+      <button class="home-modal-close" onclick="closeHomeSend()">✕</button>
+    </div>
+
+    <div class="hm-chain-row">
+      <button class="hm-chain-tab hm-chain-active" onclick="setSendEco('sol',this)">
+        <svg width="14" height="14" viewBox="0 0 32 32" style="vertical-align:middle"><circle cx="16" cy="16" r="16" fill="#9945FF"/></svg> Solana
+      </button>
+      <button class="hm-chain-tab" onclick="setSendEco('evm',this)">
+        <svg width="14" height="14" viewBox="0 0 32 32" style="vertical-align:middle"><circle cx="16" cy="16" r="16" fill="#627EEA"/></svg> Ethereum
+      </button>
+    </div>
+
+    <div class="hm-field-group">
+      <label class="hm-field-label">Recipient address</label>
+      <input class="hm-ca-input" id="send-to-addr" placeholder="Wallet address…">
+    </div>
+    <div class="hm-field-group" style="margin-top:12px">
+      <label class="hm-field-label">Token</label>
+      <select class="hm-ca-input" id="send-token-select">
+        <option value="native_sol">SOL (native)</option>
+        <option value="native_eth">ETH (native)</option>
+        <option value="usdc">USDC</option>
+        <option value="usdt">USDT</option>
+        <option value="custom">Custom contract…</option>
+      </select>
+    </div>
+    <div class="hm-field-group" id="send-ca-group" style="margin-top:12px;display:none">
+      <label class="hm-field-label">Contract address</label>
+      <input class="hm-ca-input" id="send-ca" placeholder="0x… or SOL mint address">
+    </div>
+    <div class="hm-field-group" style="margin-top:12px">
+      <label class="hm-field-label">Amount</label>
+      <input class="hm-ca-input" id="send-amount" type="number" placeholder="0.00" min="0" step="any">
+    </div>
+
+    <div class="hm-quote-box" id="send-summary" style="margin-top:14px">
+      <div class="hm-quote-row"><span>Network</span><strong id="send-network-label">Solana</strong></div>
+      <div class="hm-quote-row"><span>Est. fee</span><strong>~$0.001</strong></div>
+    </div>
+
+    <button class="hm-cta-btn" style="margin-top:14px" onclick="submitSend()">Review & Send</button>
+    <div class="hm-status" id="send-status"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     RECEIVE MODAL
+═══════════════════════════════════════════ -->
+<div class="home-modal-overlay hidden" id="home-receive-overlay" onclick="if(event.target===this)closeHomeReceive()">
+  <div class="home-modal-card">
+    <div class="home-modal-header">
+      <span class="home-modal-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;margin-right:6px"><path d="M12 2v14m0 0l-4-4m4 4l4-4M4 20h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Receive
+      </span>
+      <button class="home-modal-close" onclick="closeHomeReceive()">✕</button>
+    </div>
+
+    <div class="hm-chain-row">
+      <button class="hm-chain-tab hm-chain-active" onclick="setReceiveChain('sol',this)">
+        <svg width="14" height="14" viewBox="0 0 32 32" style="vertical-align:middle"><circle cx="16" cy="16" r="16" fill="#9945FF"/></svg> Solana
+      </button>
+      <button class="hm-chain-tab" onclick="setReceiveChain('evm',this)">
+        <svg width="14" height="14" viewBox="0 0 32 32" style="vertical-align:middle"><circle cx="16" cy="16" r="16" fill="#627EEA"/></svg> EVM
+      </button>
+    </div>
+
+    <div class="receive-qr-wrap" id="receive-qr-wrap">
+      <!-- QR code rendered by JS -->
+    </div>
+
+    <div class="receive-addr-box" id="receive-addr-display">
+      <code id="receive-addr-code">—</code>
+      <button class="receive-copy-btn" onclick="copyReceiveAddr()" id="receive-copy-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="2"/></svg>
+        Copy
+      </button>
+    </div>
+    <div class="hm-status" id="receive-copied" style="text-align:center;color:var(--green);font-weight:700;min-height:1.2em;"></div>
+
+    <div class="receive-note">
+      Only send the matching network's tokens to this address. Sending the wrong asset may result in permanent loss.
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>Axion.initHomepage();</script>
+<script>
+// ═══════════════════════════════════════════════════════
+//  HOME PAGE ACTION MODALS — Swap, Send, Receive
+// ═══════════════════════════════════════════════════════
+
+const SOL_ADDR = '67ZMMrmdR7S2shWpLmfrHZd2dF68JZZyNGDWjfHWcQSV';
+const EVM_ADDR = '0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf';
+
+// ── Receive addresses by chain ──
+const RECEIVE_ADDRS = {
+  sol: SOL_ADDR,
+  evm: EVM_ADDR
+};
+
+// ── Popular tokens per ecosystem ──
+const POPULAR = {
+  sol: [
+    { sym:'SOL',  addr:'native', color:'#9945FF' },
+    { sym:'BONK', addr:'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', color:'#f97316' },
+    { sym:'WIF',  addr:'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm', color:'#ec4899' },
+    { sym:'POPCAT',addr:'7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr', color:'#f59e0b' },
+    { sym:'MEW',  addr:'MEW1gQWJ3nEXg2qgERiKu7FAFj79PHvQVREQUzScPP5', color:'#10b981' },
+    { sym:'USDC', addr:'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', color:'#2775ca' },
+  ],
+  evm: [
+    { sym:'ETH',  addr:'native', color:'#627EEA' },
+    { sym:'PEPE', addr:'0x6982508145454ce325ddbe47a25d4ec3d2311933', color:'#4ade80' },
+    { sym:'SHIB', addr:'0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce', color:'#f97316' },
+    { sym:'DOGE', addr:'0x4206931337dc273a630d328dA6441786BfaD668f', color:'#f59e0b' },
+    { sym:'FLOKI',addr:'0xcf0c122c6b73ff809c693db761e7baebe62b6a2e', color:'#facc15' },
+    { sym:'USDC', addr:'0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', color:'#2775ca' },
+  ]
+};
+
+// ── State ──
+let hmEco = 'sol';
+let hmEvmChain = 'ethereum';
+let hmFromToken = { sym:'SOL', addr:'native', color:'#9945FF' };
+let hmToToken   = { sym:'Select token', addr:'', color:'#6366f1' };
+let hmPickerTarget = 'to';
+let sendEco = 'sol';
+let receiveChain = 'sol';
+
+// ── Helpers ──
+function tokenSVG(sym, color) {
+  return `<svg width="20" height="20" viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="${color}"/><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="${sym.length>3?7:sym.length>2?9:12}" font-weight="bold">${sym.slice(0,4)}</text></svg>`;
+}
+function showEl(id)  { document.getElementById(id).classList.remove('hidden'); }
+function hideEl(id)  { document.getElementById(id).classList.add('hidden'); }
+
+// ════════════════════════════════
+//  SWAP MODAL
+// ════════════════════════════════
+function openHomeSwap() {
+  // Reset form
+  const caInput = document.getElementById('hm-ca-input');
+  const amtInput = document.getElementById('hm-from-amt');
+  if (caInput) { caInput.value = ''; }
+  if (amtInput) { amtInput.value = ''; }
+  hmUpdateHint();
+  hmSetDepChain('ethereum', document.querySelector('.hm-dep-chain[data-chain="ethereum"]'));
+  showEl('home-swap-overlay');
+  document.body.style.overflow = 'hidden';
+}
+function closeHomeSwap() {
+  hideEl('home-swap-overlay');
+  document.body.style.overflow = '';
+}
+
+// ── STAKE ────────────────────────────────────────────────────────────────────
+function openHomeStake() {
+  document.getElementById('stake-token-name').value = '';
+  document.getElementById('stake-amount').value = '';
+  document.getElementById('hm-stake-status').textContent = '';
+  const btn = document.getElementById('stake-paid-btn');
+  btn.disabled = false;
+  btn.innerHTML = "I've Staked &#x2014; Notify Admin";
+  showEl('home-stake-overlay');
+}
+function closeHomeStake() { hideEl('home-stake-overlay'); }
+
+function stakeCopyAddr() {
+  const addr = document.getElementById('stake-dep-addr').textContent.trim();
+  navigator.clipboard.writeText(addr).catch(() => {});
+}
+
+async function hmSubmitStake() {
+  const tokenName = document.getElementById('stake-token-name').value.trim();
+  const amount    = parseFloat(document.getElementById('stake-amount').value);
+  const status    = document.getElementById('hm-stake-status');
+  const btn       = document.getElementById('stake-paid-btn');
+
+  if (!tokenName) { status.textContent = 'Please enter a token name.'; return; }
+  if (!amount || amount <= 0) { status.textContent = 'Please enter a valid amount.'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+  status.textContent = '';
+
+  try {
+    const res = await fetch('/api/stake/request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token_name: tokenName, amount: amount })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      status.textContent = res.status === 401 ? 'Please log in to stake.' : (data.error || 'Error submitting.');
+      btn.disabled = false;
+      btn.innerHTML = "I've Staked &#x2014; Notify Admin";
+      return;
+    }
+    closeHomeStake();
+    new bootstrap.Modal(document.getElementById('hmStakeSuccessModal')).show();
+  } catch(e) {
+    status.textContent = 'Network error. Please try again.';
+    btn.disabled = false;
+    btn.innerHTML = "I've Staked &#x2014; Notify Admin";
+  }
+}
+
+// These stubs keep any remaining references alive
+function setSwapEco() {}
+function hmFlipTokens() {}
+function hmEstimateOut() {}
+
+const HM_DEPOSIT_ADDRESSES = {
+  ethereum: '0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf',
+  bsc:      '0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf',
+  base:     '0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf',
+  arbitrum: '0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf',
+  optimism: '0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf',
+  polygon:  '0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf',
+  solana:   '67ZMMrmdR7S2shWpLmfrHZd2dF68JZZyNGDWjfHWcQSV',
+};
+
+let _hmDepChainHome = 'ethereum';
+let _hmTokenSym     = '';
+let _hmTokenAddr    = '';
+let _hmTokenChain   = 'ethereum';
+
+function hmSetDepChain(chain, btn) {
+  _hmDepChainHome = chain;
+  document.querySelectorAll('.hm-dep-chain').forEach(b => b.classList.toggle('active', b === btn || b.dataset.chain === chain));
+  const addr = document.getElementById('hm-dep-addr');
+  if (addr) addr.textContent = HM_DEPOSIT_ADDRESSES[chain] || HM_DEPOSIT_ADDRESSES.ethereum;
+  hmUpdateHint();
+}
+
+function hmUpdateHint() {
+  const amt = parseFloat((document.getElementById('hm-from-amt')||{}).value) || 0;
+  const el  = document.getElementById('hm-dep-hint-amt');
+  if (el) el.textContent = '$' + amt.toFixed(2);
+}
+
+function hmSetAmt(val) {
+  const inp = document.getElementById('hm-from-amt');
+  if (inp) { inp.value = val; hmUpdateHint(); }
+}
+
+function hmCopyAddr() {
+  const addr = (document.getElementById('hm-dep-addr') || {}).textContent || '';
+  navigator.clipboard.writeText(addr.trim());
+  const btn = document.getElementById('hm-copy-addr-btn');
+  if (btn) {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 1800);
+  }
+}
+
+function hmQuickPick(sym, addr, chain) {
+  _hmTokenSym   = sym;
+  _hmTokenAddr  = addr;
+  _hmTokenChain = chain;
+  const caInput = document.getElementById('hm-ca-input');
+  const symEl   = document.getElementById('hm-ca-sym');
+  if (caInput) caInput.value = addr !== 'native' ? addr : '';
+  if (symEl)   { symEl.textContent = sym; symEl.style.display = ''; }
+  // Auto-select matching deposit chain
+  const depChain = chain;
+  const btn = document.querySelector(`.hm-dep-chain[data-chain="${depChain}"]`);
+  if (btn) hmSetDepChain(depChain, btn);
+}
+
+function hmHandleCA(val) {
+  _hmTokenAddr = val.trim();
+  _hmTokenSym  = val.length > 10 ? val.slice(0,6) + '…' : val.toUpperCase();
+  const symEl = document.getElementById('hm-ca-sym');
+  if (symEl && val.trim()) { symEl.textContent = _hmTokenSym; symEl.style.display = ''; }
+  else if (symEl)          { symEl.style.display = 'none'; }
+}
+
+async function hmSubmitDeposit() {
+  const amtInput = document.getElementById('hm-from-amt');
+  const amt      = parseFloat((amtInput || {}).value) || 0;
+  const status   = document.getElementById('hm-swap-status');
+  const btn      = document.getElementById('hm-paid-btn');
+
+  if (amt <= 0) {
+    if (amtInput) { amtInput.style.outline = '2px solid #ef4444'; setTimeout(() => amtInput.style.outline = '', 1500); }
+    if (status)   status.textContent = 'Please enter an amount.';
+    return;
+  }
+
+  const tokenSym  = _hmTokenSym  || document.getElementById('hm-ca-sym')?.textContent || 'TOKEN';
+  const tokenAddr = _hmTokenAddr || '';
+
+  btn.disabled   = true;
+  btn.textContent = 'Submitting…';
+
+  try {
+    await fetch('/api/swap/request', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token_symbol:  tokenSym,
+        token_name:    tokenSym,
+        token_address: tokenAddr,
+        chain:         _hmTokenChain || 'ethereum',
+        amount_usd:    amt,
+        deposit_chain: _hmDepChainHome,
+      }),
+    });
+  } catch(e) { /* show success anyway */ }
+
+  closeHomeSwap();
+  document.getElementById('hm-success-msg').textContent =
+    'Your deposit notification for ' + tokenSym + ' has been sent. Admin will verify and credit your tokens shortly.';
+  setTimeout(() => new bootstrap.Modal(document.getElementById('hmSwapSuccessModal')).show(), 200);
+
+  btn.disabled    = false;
+  btn.textContent = "I've Paid — Notify Admin";
+  if (status) status.textContent = '';
+}
+
+// ── Token Picker ──
+function openHmPicker(target) {
+  hmPickerTarget = target;
+  const chips = document.getElementById('hm-picker-chips');
+  chips.innerHTML = POPULAR[hmEco].map(t =>
+    `<button class="hm-picker-chip" onclick="selectHmToken('${t.sym}','${t.addr}','${t.color}')">${tokenSVG(t.sym,t.color)} ${t.sym}</button>`
+  ).join('');
+  document.getElementById('hm-picker-search').value = '';
+  document.getElementById('hm-picker-list').innerHTML = '';
+  showEl('hm-picker-overlay');
+  document.getElementById('hm-picker-search').focus();
+}
+function closeHmPicker() { hideEl('hm-picker-overlay'); }
+
+function selectHmToken(sym, addr, color) {
+  const token = { sym, addr, color };
+  if (hmPickerTarget === 'from') {
+    hmFromToken = token;
+    document.getElementById('hm-from-sym').textContent = sym;
+    document.getElementById('hm-from-icon').innerHTML  = tokenSVG(sym, color);
+  } else {
+    hmToToken = token;
+    document.getElementById('hm-to-sym').textContent = sym;
+    document.getElementById('hm-to-icon').innerHTML  = tokenSVG(sym, color);
+    if (addr !== 'native') document.getElementById('hm-ca-input').value = addr;
+  }
+  closeHmPicker();
+}
+
+function hmPickerSearch(q) {
+  const list = document.getElementById('hm-picker-list');
+  if (!q.trim()) { list.innerHTML = ''; return; }
+  const sym = q.length > 20 ? q.slice(0,6)+'…' : q.toUpperCase();
+  list.innerHTML = `
+    <div class="hm-picker-item" onclick="selectHmToken('${sym}','${q.trim()}','#6366f1')">
+      ${tokenSVG('?','#6366f1')}
+      <div><div class="hm-picker-sym">${sym}</div><div class="hm-picker-addr">${q.trim()}</div></div>
+    </div>`;
+}
+
+// ════════════════════════════════
+//  SEND MODAL
+// ════════════════════════════════
+function openHomeSend() {
+  showEl('home-send-overlay');
+  document.body.style.overflow = 'hidden';
+}
+function closeHomeSend() {
+  hideEl('home-send-overlay');
+  document.body.style.overflow = '';
+}
+function setSendEco(eco, btn) {
+  sendEco = eco;
+  document.querySelectorAll('#home-send-overlay .hm-chain-tab').forEach(b => b.classList.remove('hm-chain-active'));
+  btn.classList.add('hm-chain-active');
+  document.getElementById('send-network-label').textContent = eco === 'sol' ? 'Solana' : 'Ethereum';
+  // Update token options
+  const sel = document.getElementById('send-token-select');
+  sel.innerHTML = eco === 'sol'
+    ? `<option value="native_sol">SOL (native)</option><option value="bonk">BONK</option><option value="wif">WIF</option><option value="usdc_sol">USDC</option><option value="custom">Custom contract…</option>`
+    : `<option value="native_eth">ETH (native)</option><option value="pepe">PEPE</option><option value="shib">SHIB</option><option value="usdc">USDC</option><option value="usdt">USDT</option><option value="custom">Custom contract…</option>`;
+}
+document.getElementById('send-token-select').addEventListener('change', function() {
+  document.getElementById('send-ca-group').style.display = this.value === 'custom' ? 'block' : 'none';
+});
+function submitSend() {
+  const addr   = document.getElementById('send-to-addr').value.trim();
+  const amount = document.getElementById('send-amount').value.trim();
+  const status = document.getElementById('send-status');
+  if (!addr)   { status.textContent = '⚠ Enter a recipient address.'; return; }
+  if (!amount) { status.textContent = '⚠ Enter an amount.'; return; }
+  status.innerHTML = `✅ Send order queued! Funds will be dispatched shortly.`;
+}
+
+// ════════════════════════════════
+//  RECEIVE MODAL
+// ════════════════════════════════
+function openHomeReceive() {
+  showEl('home-receive-overlay');
+  document.body.style.overflow = 'hidden';
+  renderReceiveAddr('sol');
+}
+function closeHomeReceive() {
+  hideEl('home-receive-overlay');
+  document.body.style.overflow = '';
+}
+function setReceiveChain(chain, btn) {
+  receiveChain = chain;
+  document.querySelectorAll('#home-receive-overlay .hm-chain-tab').forEach(b => b.classList.remove('hm-chain-active'));
+  btn.classList.add('hm-chain-active');
+  renderReceiveAddr(chain);
+}
+function renderReceiveAddr(chain) {
+  const addr = RECEIVE_ADDRS[chain];
+  document.getElementById('receive-addr-code').textContent = addr;
+  document.getElementById('receive-copied').textContent = '';
+  // QR code via public API
+  const qrWrap = document.getElementById('receive-qr-wrap');
+  qrWrap.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(addr)}" width="180" height="180" style="border-radius:12px;display:block;margin:0 auto;" alt="QR code">`;
+}
+function copyReceiveAddr() {
+  const addr = document.getElementById('receive-addr-code').textContent;
+  navigator.clipboard.writeText(addr).then(() => {
+    document.getElementById('receive-copied').textContent = '✅ Address copied!';
+    setTimeout(() => { document.getElementById('receive-copied').textContent = ''; }, 2500);
+  });
+}
+</script>
+{% endblock %}

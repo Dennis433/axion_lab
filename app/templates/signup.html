@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Sign up — Axion{% endblock %}
+{% block content %}
+<section class="auth-page">
+  <div class="auth-card">
+    <div class="text-center mb-4">
+      <div class="auth-logo mx-auto mb-3">M</div>
+      <h1 class="auth-title">Create your account</h1>
+      <p class="auth-sub">A deposit wallet is generated automatically — no seed phrase needed.</p>
+    </div>
+
+    <div class="auth-feature-row">
+      <div class="auth-feature"><i class="bi bi-shield-check text-success"></i><span>Secure wallet</span></div>
+      <div class="auth-feature"><i class="bi bi-lightning-charge text-warning"></i><span>Instant access</span></div>
+      <div class="auth-feature"><i class="bi bi-globe text-primary"></i><span>All chains</span></div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} py-2 mb-3" style="font-size:13px;border-radius:10px;">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="post">
+      <!-- Username — REQUIRED -->
+      <div class="mb-3">
+        <label class="field-label">
+          <i class="bi bi-at me-1"></i>Username <span style="color:#ef4444;font-size:13px;">*</span>
+        </label>
+        <div class="input-group-enhanced">
+          <i class="bi bi-at input-icon"></i>
+          <input class="input input-with-icon" type="text" name="username"
+                 placeholder="e.g. cryptoking"
+                 minlength="3" maxlength="30"
+                 pattern="[a-zA-Z0-9_.]{3,30}"
+                 title="Letters, numbers, underscores and dots only"
+                 required autocomplete="username">
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px;padding-left:2px;">
+          3–30 characters · letters, numbers, _ and . only
+        </div>
+      </div>
+
+      <!-- Email — REQUIRED -->
+      <div class="mb-3">
+        <label class="field-label">
+          <i class="bi bi-envelope me-1"></i>Email address <span style="color:#ef4444;font-size:13px;">*</span>
+        </label>
+        <div class="input-group-enhanced">
+          <i class="bi bi-envelope input-icon"></i>
+          <input class="input input-with-icon" type="email" name="email"
+                 placeholder="you@example.com" required autocomplete="email">
+        </div>
+      </div>
+
+      <!-- Password — REQUIRED -->
+      <div class="mb-4">
+        <label class="field-label">
+          <i class="bi bi-lock me-1"></i>Password <span style="color:#ef4444;font-size:13px;">*</span>
+        </label>
+        <div class="input-group-enhanced">
+          <i class="bi bi-lock input-icon"></i>
+          <input class="input input-with-icon" type="password" name="password"
+                 placeholder="Min. 8 characters" minlength="8" required autocomplete="new-password">
+        </div>
+      </div>
+
+      <button class="btn-solid btn-full" type="submit">
+        <i class="bi bi-rocket-takeoff me-2"></i>Create account &amp; get wallet
+      </button>
+    </form>
+
+    <div class="auth-divider"><span>Already have an account?</span></div>
+    <a href="{{ url_for('main.login') }}" class="btn-outline-auth">
+      <i class="bi bi-box-arrow-in-right me-1"></i>Log in
+    </a>
+  </div>
+</section>
+{% endblock %}

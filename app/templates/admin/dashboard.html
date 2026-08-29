@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}User Management — Axion{% endblock %}
+{% block content %}
+
+<div class="admin-page">
+
+  <!-- Header -->
+  <div class="admin-page-header d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+    <div>
+      <h1 class="mb-0 fw-800">User Management</h1>
+      <p class="text-secondary mb-0 mt-1" style="font-size:13px;">View, manage and moderate platform users</p>
+    </div>
+    <a href="{{ url_for('main.index') }}" class="btn-outline-nav">
+      <i class="bi bi-arrow-left me-1"></i>Back to site
+    </a>
+  </div>
+
+  <div class="mb-3">
+    <a href="{{ url_for('admin.telegram_users') }}" class="btn-outline-nav" style="display:inline-flex; align-items:center; gap:6px;">
+      <i class="bi bi-telegram" style="color:#229ED9;"></i>View Telegram Bot Users
+    </a>
+  </div>
+
+  <!-- Total Users card -->
+  <div class="row g-3 mb-4">
+    <div class="col-auto">
+      <div class="admin-stat-card" style="min-width:160px;">
+        <div style="font-size:28px; color:var(--text3); margin-bottom:4px;"><i class="bi bi-people-fill"></i></div>
+        <div style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:var(--text4); margin-bottom:2px;">TOTAL USERS</div>
+        <div style="font-size:36px; font-weight:900; color:var(--text); line-height:1;">{{ users|length }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Users table card -->
+  <div class="admin-table-card">
+
+    <!-- Table header row: tab + search -->
+    <div class="d-flex align-items-center justify-content-between px-4 py-3 gap-3 flex-wrap"
+         style="border-bottom:1px solid var(--border);">
+      <span style="font-size:13px; font-weight:700; background:var(--panel2); border:1.5px solid var(--border); border-radius:20px; padding:6px 18px; color:var(--text);">All Users</span>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <form onsubmit="event.preventDefault(); var v=this.tgid.value.trim(); if(v) window.location.href='{{ url_for('admin.find_by_telegram_id', telegram_id='0') }}'.slice(0, -1) + v;"
+              class="d-flex align-items-center gap-1" style="background:var(--panel2); border:1.5px solid var(--border); border-radius:20px; padding:6px 14px;">
+          <i class="bi bi-telegram" style="font-size:13px; color:#229ED9;"></i>
+          <input type="text" name="tgid" placeholder="Telegram ID…" style="background:transparent; border:none; outline:none; font-size:13px; color:var(--text); width:120px;">
+          <button type="submit" style="background:none; border:none; color:var(--text3); font-size:12px; cursor:pointer;"><i class="bi bi-arrow-right-circle"></i></button>
+        </form>
+        <div class="search-wrap" style="max-width:210px; padding:6px 12px;">
+          <i class="bi bi-search search-ico" style="font-size:13px;"></i>
+          <input type="text" placeholder="Search users…" oninput="filterUsers(this.value)"
+            style="background:transparent; border:none; outline:none; font-size:13px; color:var(--text); width:100%;">
+        </div>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table token-table mb-0" id="users-table">
+        <thead>
+          <tr>
+            <th style="padding-left:20px; font-size:11px; font-weight:800; letter-spacing:.06em; color:var(--text4);">USER</th>
+            <th style="font-size:11px; font-weight:800; letter-spacing:.06em; color:var(--text4);">JOINED</th>
+            <th style="font-size:11px; font-weight:800; letter-spacing:.06em; color:var(--text4);">TRADES</th>
+            <th style="font-size:11px; font-weight:800; letter-spacing:.06em; color:var(--text4);">VOLUME</th>
+            <th style="font-size:11px; font-weight:800; letter-spacing:.06em; color:var(--text4);">ROLE</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+          {% set uname = user.username or user.email.split('@')[0] %}
+          {% set trade_count = trade_counts.get(user.id, 0) %}
+          {% set sol_vol = sol_volumes.get(user.id, 0.0) %}
+          <tr class="user-row" data-email="{{ user.email }}" data-uname="{{ uname }}">
+
+            <!-- USER -->
+            <td style="padding-left:20px;">
+              <div class="d-flex align-items-center gap-3">
+                <div style="width:36px; height:36px; min-width:36px; border-radius:50%;
+                            background:linear-gradient(135deg,var(--blue),var(--indigo));
+                            display:grid; place-items:center; font-size:15px; font-weight:800; color:#fff;">
+                  {{ (user.username or user.email)[0].upper() }}
+                </div>
+                <div>
+                  <div style="font-size:15px; font-weight:800; color:var(--text); line-height:1.2;">
+                    @{{ user.username or '—' }}
+                  </div>
+                  <div style="font-size:11px; color:var(--text4); margin-top:1px;">{{ user.email }}</div>
+                </div>
+              </div>
+            </td>
+
+            <!-- JOINED -->
+            <td>
+              <span style="font-size:12px; color:var(--text3); font-family:var(--mono); white-space:pre-line;">{{ user.created_at.strftime('%Y-\n%m-%d') if user.created_at else '—' }}</span>
+            </td>
+
+            <!-- TRADES -->
+            <td>
+              <span style="font-size:15px; font-weight:700; color:var(--text);">{{ trade_count }}</span>
+            </td>
+
+            <!-- VOLUME -->
+            <td>
+              <div style="font-size:15px; font-weight:700; {% if sol_vol > 0 %}color:#f59e0b;{% else %}color:var(--text4);{% endif %}">
+                {{ "%.2f"|format(sol_vol) }}
+              </div>
+              <div style="font-size:11px; font-weight:600; color:var(--text4);">SOL</div>
+            </td>
+
+            <!-- ROLE -->
+            <td>
+              {% if user.is_admin %}
+                <span class="badge-role badge-admin"><i class="bi bi-shield-lock-fill me-1"></i>Admin</span>
+              {% else %}
+                <span class="badge-role badge-user"><i class="bi bi-person me-1"></i>User</span>
+              {% endif %}
+            </td>
+
+            <!-- ACTION -->
+            <td class="text-end" style="padding-right:20px;">
+              <a href="{{ url_for('admin.user_detail', user_id=user.id) }}" class="btn-view">
+                <i class="bi bi-eye me-1"></i>View
+              </a>
+            </td>
+
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" class="empty-row">
+              <i class="bi bi-inbox fs-2 d-block mb-2 text-secondary"></i>No users yet.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterUsers(q) {
+  q = q.toLowerCase();
+  document.querySelectorAll('.user-row').forEach(row => {
+    const match = row.dataset.email.includes(q) || row.dataset.uname.includes(q);
+    row.style.display = match ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}

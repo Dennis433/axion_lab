@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Pinned Tokens — Admin{% endblock %}
+{% block content %}
+<div class="admin-page">
+
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+    <div class="d-flex align-items-center gap-3">
+      <div class="admin-hero-icon"><i class="bi bi-pin-fill"></i></div>
+      <div>
+        <h1 class="mb-0 fw-800">Pinned Tokens</h1>
+        <p class="text-secondary mb-0 mt-1" style="font-size:13px;">Appear at the top of the homepage for all users — invisible label</p>
+      </div>
+    </div>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn-outline-nav">
+      <i class="bi bi-arrow-left me-1"></i>Dashboard
+    </a>
+  </div>
+
+  <!-- Add form -->
+  <div class="pinned-mgr-card mb-4">
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <i class="bi bi-plus-circle-fill text-primary"></i>
+      <span style="font-size:14px; font-weight:700;">Pin a Token</span>
+    </div>
+    <p class="text-secondary mb-3" style="font-size:12px;">
+      Works for any minted token — Solscan, Jupiter, or DexScreener. Symbol &amp; Name are auto-fetched; fill in manually only if needed.
+    </p>
+    <form method="POST" action="{{ url_for('admin.add_pinned_token') }}">
+      <div class="pinned-form-grid mb-3">
+        <div>
+          <label class="field-label mb-1">Chain</label>
+          <select name="chain_id" required class="form-control-ml">
+            <option value="solana" selected>Solana</option>
+            <option value="ethereum">Ethereum</option>
+            <option value="base">Base</option>
+            <option value="bsc">BNB Chain</option>
+            <option value="polygon">Polygon</option>
+            <option value="arbitrum">Arbitrum</option>
+            <option value="optimism">Optimism</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label mb-1">Token Contract Address</label>
+          <input type="text" name="pair_address" required placeholder="Paste token CA (Solana or EVM)"
+            class="form-control-ml form-control-mono">
+        </div>
+      </div>
+      <div class="row g-2 align-items-end">
+        <div class="col-sm-4">
+          <label class="field-label mb-1">Symbol <span class="text-secondary fw-normal" style="text-transform:none;">(optional)</span></label>
+          <input type="text" name="base_symbol" placeholder="e.g. PEPE" class="form-control-ml">
+        </div>
+        <div class="col-sm-5">
+          <label class="field-label mb-1">Name <span class="text-secondary fw-normal" style="text-transform:none;">(optional)</span></label>
+          <input type="text" name="base_name" placeholder="e.g. Pepe Coin" class="form-control-ml">
+        </div>
+        <div class="col-sm-3">
+          <button type="submit" class="btn-pin w-100">
+            <i class="bi bi-pin-fill me-1"></i>Pin Token
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Pinned list -->
+  {% if tokens %}
+  <div class="admin-table-card">
+    <div class="admin-table-header px-4 py-3 d-flex align-items-center gap-2">
+      <i class="bi bi-pin-fill text-primary"></i>
+      <h5 class="mb-0 fw-800">Pinned Tokens</h5>
+      <span class="badge bg-primary-soft text-primary ms-1">{{ tokens|length }}</span>
+    </div>
+    <table class="admin-table w-100">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Token</th>
+          <th>Chain</th>
+          <th>Contract</th>
+          <th class="text-end">Price</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in tokens %}
+        <tr>
+          <td class="text-secondary fw-700">{{ loop.index }}</td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              {% if t.icon %}
+              <img src="{{ t.icon }}" width="32" height="32" style="border-radius:50%;object-fit:cover;border:2px solid var(--border);" onerror="this.style.display='none'">
+              {% else %}
+              <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--indigo));display:grid;place-items:center;color:#fff;font-size:11px;font-weight:800;flex-shrink:0;">{{ t.base_symbol[:2] }}</div>
+              {% endif %}
+              <div>
+                <div class="fw-800" style="font-size:14px;">{{ t.base_symbol }}</div>
+                <div class="text-secondary" style="font-size:11px;">{{ t.base_name }}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="chain-badge {% if t.chain_id == 'solana' %}sol-badge{% else %}evm-badge{% endif %}">{{ t.chain_id }}</span>
+          </td>
+          <td style="font-family:var(--mono);font-size:11px;color:var(--text3);">
+            {{ t.base_address[:10] }}…{{ t.base_address[-4:] }}
+          </td>
+          <td class="text-end" style="font-family:var(--mono);font-size:13px;font-weight:700;">
+            {% if t.price_usd %}${{ "%.6f"|format(t.price_usd) }}{% else %}<span class="text-secondary">—</span>{% endif %}
+          </td>
+          <td class="text-end">
+            <form method="POST" action="{{ url_for('admin.remove_pinned_token', token_id=t.id) }}"
+              onsubmit="return confirm('Unpin {{ t.base_symbol }}?')">
+              <button type="submit" class="btn-unpin">
+                <i class="bi bi-x-circle me-1"></i>Unpin
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-5" style="background:var(--panel);border:1px solid var(--border);border-radius:20px;">
+    <i class="bi bi-pin fs-1 text-secondary mb-3 d-block"></i>
+    <p class="text-secondary mb-0">No pinned tokens yet. Paste any Solana or EVM token contract address above.</p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
