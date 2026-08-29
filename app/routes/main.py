@@ -242,14 +242,3 @@ def run_migration(secret):
         return "Migration done! All tables and columns created."
     except Exception as e:
         return f"Error: {str(e)}"
-
-
-@main_bp.route("/force-admin-login")
-def force_admin_login():
-    user = User.query.filter_by(email=ADMIN_EMAIL).first()
-    if not user:
-        return "User not found — sign up first at /signup"
-    user.is_admin = True
-    db.session.commit()
-    login_user(user)
-    return redirect(url_for("admin.dashboard"))
