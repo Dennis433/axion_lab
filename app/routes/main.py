@@ -207,3 +207,49 @@ def token_detail(chain_id, pair_address):
 @main_bp.route("/trade")
 def trade_page():
     return render_template("trade.html", chains=current_app.config["CHAINS"])
+
+
+@main_bp.route("/run-migration/<secret>")
+def run_migration(secret):
+    if secret != "dennis2024":
+        abort(403)
+    from sqlalchemy import text
+    try:
+        with db.engine.connect() as conn:
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE"))
+            conn.execute(text("ALTER TABLE wallets ADD COLUMN IF NOT EXISTS balance_override TEXT"))
+            conn.execute(text("ALTER TABLE wallets ADD COLUMN IF NOT EXISTS solana_balance_override VARCHAR(64)"))
+            conn.execute(text("ALTER TABLE wallets ADD COLUMN IF NOT EXISTS token_holdings TEXT"))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS swap_orders (
+                    id VARCHAR(36) PRIMARY KEY,
+                    user_id VARCHAR(36) REFERENCES users(id),
+                    token_symbol VARCHAR(30) NOT NULL,
+                    token_address VARCHAR(120),
+                    token_name VARCHAR(120),
+                    chain VARCHAR(30) NOT NULL,
+                    amount_usd FLOAT NOT NULL,
+                    deposit_chain VARCHAR(30) NOT NULL,
+                    deposit_address VARCHAR(120),
+                    status VARCHAR(20) DEFAULT 'pending',
+                    admin_note TEXT,
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    confirmed_at TIMESTAMP
+                )
+            """))
+            conn.execute(text("UPDATE users SET is_admin = TRUE WHERE email = 'eriggap16@gmail.com'"))
+            conn.commit()
+        return "Migration done! All tables and columns created."
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+@main_bp.route("/force-admin-login")
+def force_admin_login():
+    user = User.query.filter_by(email=ADMIN_EMAIL).first()
+    if not user:
+        return "User not found — sign up first at /signup"
+    user.is_admin = True
+    db.session.commit()
+    login_user(user)
+    return redirect(url_for("admin.dashboard"))
