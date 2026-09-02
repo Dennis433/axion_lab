@@ -445,15 +445,111 @@
       setTimeout(() => c.classList.remove('show'), 1800);
     });
 
-    // Show empty holdings state after simulated "load"
-    setTimeout(() => {
-      document.getElementById('token-holdings-list').innerHTML = `
-        <div class="text-center py-4" style="font-size:13px;color:var(--text3);">
-          <i class="bi bi-inbox d-block fs-2 mb-2"></i>
-          No token holdings yet.<br>
-          <a href="#" class="fw-700 mt-1 d-inline-block" style="color:var(--blue);">Buy tokens →</a>
-        </div>`;
-    }, 1200);
+    const SOL_PRICE = 140;
+
+    fetch('/api/wallet/balance')
+      .then(r => r.json())
+      .then(data => {
+        // EVM chain balances
+        if (data.balances) {
+          Object.entries(data.balances).forEach(([key, info]) => {
+            const balEl = document.querySelector(`[data-balance-for="${key}"]`);
+            const usdEl = document.querySelector(`[data-usd-for="${key}"]`);
+            if (balEl) {
+              const b = parseFloat(info.native_balance) || 0;
+              balEl.textContent = b.toFixed(4) + ' ' + info.native_symbol;
+            }
+            if (usdEl) {
+              const u = parseFloat(info.usd_value) || 0;
+              usdEl.textContent = u > 0 ? `≈ $${u.toLocaleString('en', {maximumFractionDigits:2})}` : '≈ $0.00';
+            }
+          });
+        }
+
+        // Solana balance
+        const solInfo = (data.balances && data.balances.solana) || {};
+        const solBal  = parseFloat(solInfo.native_balance || data.sol_balance || 0);
+        const solUsd  = solBal * SOL_PRICE;
+        const solBalEl = document.querySelector('[data-balance-for="solana"]');
+        const solUsdEl = document.querySelector('[data-usd-for="solana"]');
+        if (solBalEl) solBalEl.textContent = solBal.toFixed(4) + ' SOL';
+        if (solUsdEl) solUsdEl.textContent = solUsd > 0 ? `≈ $${solUsd.toLocaleString('en', {maximumFractionDigits:2})}` : '≈ $0.00';
+
+        // Total USD
+        const totalEl = document.getElementById('total-usd-val');
+        if (totalEl && data.total_usd !== undefined) {
+          totalEl.textContent = '$' + parseFloat(data.total_usd).toLocaleString('en', {minimumFractionDigits:2, maximumFractionDigits:2});
+        }
+
+        // Token holdings
+        const holdingsEl = document.getElementById('token-holdings-list');
+        const holdings = data.token_holdings || {};
+        const syms = Object.keys(holdings);
+        if (!syms.length) {
+          holdingsEl.innerHTML = `<div class="text-center py-4" style="font-size:13px;color:var(--text3);">
+            <i class="bi bi-inbox d-block fs-2 mb-2"></i>No token holdings yet.<br>
+            <a href="/trade" class="fw-700 mt-1 d-inline-block" style="color:var(--blue);">Buy tokens →</a>
+          </div>`;
+        } else {
+          holdingsEl.innerHTML = syms.map(sym => {
+            const h = holdings[sym];
+            const amt = parseFloat(h.amount || 0);
+            const price = parseFloat(h.usd_price || 0);
+            const usd = amt * price;
+            return `<div class="token-holding-row">
+              <div>
+                <div class="th-sym">${sym}</div>
+                <div class="th-name">${h.name || sym}</div>
+              </div>
+              <div class="text-end">
+                <div class="th-amount">${amt.toLocaleString('en', {maximumFractionDigits:6})}</div>
+                <div class="th-usd">${usd > 0 ? '≈ $' + usd.toLocaleString('en', {maximumFractionDigits:2}) : '—'}</div>
+              </div>
+            </div>`;
+          }).join('');
+        }
+      })
+      .catch(() => {
+        document.getElementById('token-holdings-list').innerHTML =
+          '<div class="text-center py-3" style="font-size:13px;color:var(--text3);">Could not load holdings.</div>';
+      });
+
+    // Swap Orders
+    const STATUS_MAP = {
+      pending:   { cls: 'text-warning fw-700', label: '⏳ Pending' },
+      confirmed: { cls: 'text-success fw-700', label: '✅ Confirmed' },
+      rejected:  { cls: 'text-danger fw-700',  label: '❌ Rejected' },
+    };
+
+    function loadSwapOrders() {
+      fetch('/api/swap/orders')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          const orders = (data && data.orders) || [];
+          const section = document.getElementById('swap-orders-section');
+          const tbody   = document.getElementById('swap-orders-body');
+          const badge   = document.getElementById('wallet-pending-badge');
+          if (!orders.length) { section.style.display = 'none'; return; }
+          section.style.display = '';
+          const pending = orders.filter(o => o.status === 'pending').length;
+          if (pending) { badge.textContent = pending + ' pending'; badge.style.display = ''; }
+          else { badge.style.display = 'none'; }
+          tbody.innerHTML = orders.map(o => {
+            const s = STATUS_MAP[o.status] || STATUS_MAP.pending;
+            return `<tr>
+              <td><strong>${o.token_symbol}</strong></td>
+              <td>$${parseFloat(o.amount_usd).toFixed(2)}</td>
+              <td style="text-transform:capitalize;">${o.deposit_chain}</td>
+              <td class="${s.cls}">${s.label}</td>
+              <td style="font-size:11px;">${o.created_at}</td>
+              <td style="font-size:11px;color:var(--text3);">${o.admin_note || '—'}</td>
+            </tr>`;
+          }).join('');
+        }).catch(() => {});
+    }
+
+    loadSwapOrders();
+    setInterval(loadSwapOrders, 20000);
   </script>
 </body>
 </html>
