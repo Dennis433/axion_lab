@@ -581,6 +581,15 @@ const Axion = (() => {
     // ────────────────────────────────────────────────────────────────────
   }
 
+  // ─── FIXED initWalletPage ────────────────────────────────────────────
+  // Bugs fixed:
+  //   1. Solana balance was read from data.solana_balance (doesn't exist) —
+  //      now correctly reads from data.balances.solana.native_balance.
+  //   2. USD values (data-usd-for) were never written — now updated for all chains.
+  //   3. total-usd-val was never updated — now set from data.total_usd.
+  //   4. Token holdings were never rendered — now fully handled here.
+  //   5. The duplicate fetch in wallet.html can now be removed entirely.
+  // ─────────────────────────────────────────────────────────────────────
   function initWalletPage() {
     function wireCopyButton(buttonId, confirmId) {
       const btn = document.getElementById(buttonId);
@@ -606,29 +615,76 @@ const Axion = (() => {
     }
 
     wireCopyButton("copy-address", "copy-confirm");
-    wireCopyButton("copy-solana-address", "copy-solana-confirm");
+    wireCopyButton("copy-solana", "copy-solana-confirm");
 
-    fetch("/api/wallet/balance")
+    fetch("/api/wallet/balance", { cache: "no-store" })
       .then((r) => r.json())
       .then((data) => {
+        // ── Chain balances (native + USD) ──────────────────────────────
         if (data.balances) {
           Object.entries(data.balances).forEach(([chainKey, info]) => {
-            const el = document.querySelector(`[data-balance-for="${chainKey}"]`);
-            if (el) {
-              const bal = info.native_balance;
-              el.textContent = bal !== null && bal !== undefined
-                ? `${Number(bal).toFixed(4)} ${info.native_symbol}`
-                : `0 ${info.native_symbol}`;
+            const balEl = document.querySelector(`[data-balance-for="${chainKey}"]`);
+            const usdEl = document.querySelector(`[data-usd-for="${chainKey}"]`);
+
+            if (balEl) {
+              const b = parseFloat(info.native_balance) || 0;
+              balEl.textContent = `${b.toFixed(4)} ${info.native_symbol}`;
+            }
+            if (usdEl) {
+              const u = parseFloat(info.usd_value) || 0;
+              usdEl.textContent = u > 0
+                ? `≈ $${u.toLocaleString("en", { maximumFractionDigits: 2 })}`
+                : "≈ $0.00";
             }
           });
         }
-        const solEl = document.querySelector('[data-balance-for="solana"]');
-        if (solEl) {
-          const bal = data.solana_balance;
-          solEl.textContent = bal !== null && bal !== undefined ? `${Number(bal).toFixed(4)} SOL` : "0 SOL";
+
+        // ── Total portfolio USD ────────────────────────────────────────
+        const totalEl = document.getElementById("total-usd-val");
+        if (totalEl && data.total_usd !== undefined) {
+          totalEl.textContent = "$" + parseFloat(data.total_usd).toLocaleString("en", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          });
+        }
+
+        // ── Token holdings ─────────────────────────────────────────────
+        const holdingsEl = document.getElementById("token-holdings-list");
+        if (holdingsEl) {
+          const holdings = data.token_holdings || {};
+          const syms = Object.keys(holdings);
+          if (!syms.length) {
+            holdingsEl.innerHTML = `<div class="text-center text-secondary py-4" style="font-size:13px;">
+              <i class="bi bi-inbox d-block fs-2 mb-2"></i>No token holdings yet.<br>
+              <a href="/trade" class="text-primary fw-700 mt-1 d-inline-block">Buy tokens →</a>
+            </div>`;
+          } else {
+            holdingsEl.innerHTML = syms.map(sym => {
+              const h = holdings[sym];
+              const amt = parseFloat(h.amount || 0);
+              const price = parseFloat(h.usd_price || 0);
+              const usd = amt * price;
+              return `<div class="token-holding-row">
+                <div>
+                  <div class="th-sym">${sym}</div>
+                  <div class="th-name">${h.name || sym}</div>
+                </div>
+                <div class="text-end">
+                  <div class="th-amount">${amt.toLocaleString("en", { maximumFractionDigits: 6 })}</div>
+                  <div class="th-usd">${usd > 0 ? "≈ $" + usd.toLocaleString("en", { maximumFractionDigits: 2 }) : "—"}</div>
+                </div>
+              </div>`;
+            }).join("");
+          }
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        const holdingsEl = document.getElementById("token-holdings-list");
+        if (holdingsEl) {
+          holdingsEl.innerHTML =
+            '<div class="text-center text-secondary py-3" style="font-size:13px;">Could not load holdings.</div>';
+        }
+      });
   }
 
   function initTradePage() {
