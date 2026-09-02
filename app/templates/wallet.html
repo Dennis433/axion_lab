@@ -142,25 +142,9 @@
 
 {% block scripts %}
 <script>
-  // initWalletPage() in app.js handles the /api/wallet/balance fetch,
-  // chain balances, total USD, and token holdings — no duplicate fetch here.
-  MemeLabs.initWalletPage();
-
-  // Copy-to-clipboard for EVM address
-  document.getElementById('copy-address').addEventListener('click', function() {
-    navigator.clipboard.writeText(this.getAttribute('data-address'));
-    var c = document.getElementById('copy-confirm');
-    c.classList.add('show');
-    setTimeout(() => c.classList.remove('show'), 1800);
-  });
-
-  // Copy-to-clipboard for Solana address
-  document.getElementById('copy-solana').addEventListener('click', function() {
-    navigator.clipboard.writeText(this.getAttribute('data-address'));
-    var c = document.getElementById('copy-solana-confirm');
-    c.classList.add('show');
-    setTimeout(() => c.classList.remove('show'), 1800);
-  });
+  // Axion.initWalletPage() (defined in app.js) handles the /api/wallet/balance
+  // fetch, chain balances, total USD, token holdings, and copy buttons.
+  Axion.initWalletPage();
 
   // Swap Orders
   const STATUS_MAP = {
