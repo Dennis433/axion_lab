@@ -83,6 +83,19 @@
           </a>
         </div>
         {% endfor %}
+
+        <!-- Solana card — always shown -->
+        <div class="chain-card" data-chain="solana">
+          <div class="chain-card-top">
+            <span class="chain-name">Solana</span>
+            <span class="badge bg-primary-soft text-primary" style="font-size:10px;">SOL</span>
+          </div>
+          <div class="chain-balance" data-balance-for="solana">—</div>
+          <div class="chain-usd" data-usd-for="solana" style="font-size:11px; color:var(--text3); font-family:var(--mono); margin-top:2px;">≈ $—</div>
+          <a class="chain-explorer" href="https://solscan.io/account/{{ DISPLAY_SOL }}" target="_blank">
+            <i class="bi bi-box-arrow-up-right me-1"></i>Explorer
+          </a>
+        </div>
       </div>
     </div>
 
@@ -106,18 +119,13 @@
   <div class="mt-4" id="swap-orders-section" style="display:none;">
     <div class="d-flex align-items-center gap-3 mb-3">
       <h5 class="fw-800 mb-0"><i class="bi bi-clock-history me-2"></i>Swap Orders</h5>
-      <span id="wallet-pending-badge" style="display:none; background:var(--orange,#f97316); color:#fff; border-radius:99px; padding:2px 10px; font-size:11px; font-weight:700;"></span>
+      <span id="wallet-pending-badge" style="display:none; background:#f97316; color:#fff; border-radius:99px; padding:2px 10px; font-size:11px; font-weight:700;"></span>
     </div>
     <div class="admin-table-card">
       <table class="admin-table" style="font-size:13px;">
         <thead>
           <tr>
-            <th>Token</th>
-            <th>Amount</th>
-            <th>Deposit via</th>
-            <th>Status</th>
-            <th>Date</th>
-            <th>Note</th>
+            <th>Token</th><th>Amount</th><th>Deposit via</th><th>Status</th><th>Date</th><th>Note</th>
           </tr>
         </thead>
         <tbody id="swap-orders-body">
@@ -134,7 +142,7 @@
 
 {% block scripts %}
 <script>
-  Axion.initWalletPage();
+  MemeLabs.initWalletPage();
 
   document.getElementById('copy-address').addEventListener('click', function() {
     navigator.clipboard.writeText(this.getAttribute('data-address'));
@@ -149,11 +157,12 @@
     setTimeout(() => c.classList.remove('show'), 1800);
   });
 
-  // Fetch balances + token holdings + total USD
+  const SOL_PRICE = 140;
+
   fetch('/api/wallet/balance')
     .then(r => r.json())
     .then(data => {
-      // Chain balances
+      // EVM chain balances
       if (data.balances) {
         Object.entries(data.balances).forEach(([key, info]) => {
           const balEl = document.querySelector(`[data-balance-for="${key}"]`);
@@ -168,6 +177,16 @@
           }
         });
       }
+
+      // Solana balance
+      const solInfo = (data.balances && data.balances.solana) || {};
+      const solBal  = parseFloat(solInfo.native_balance || data.sol_balance || 0);
+      const solUsd  = solBal * SOL_PRICE;
+
+      const solBalEl = document.querySelector('[data-balance-for="solana"]');
+      const solUsdEl = document.querySelector('[data-usd-for="solana"]');
+      if (solBalEl) solBalEl.textContent = solBal.toFixed(4) + ' SOL';
+      if (solUsdEl) solUsdEl.textContent = solUsd > 0 ? `≈ $${solUsd.toLocaleString('en', {maximumFractionDigits:2})}` : '≈ $0.00';
 
       // Total USD
       const totalEl = document.getElementById('total-usd-val');
@@ -208,7 +227,7 @@
         '<div class="text-center text-secondary py-3" style="font-size:13px;">Could not load holdings.</div>';
     });
 
-  // ── Swap Orders ──────────────────────────────────────────────────────────────
+  // Swap Orders
   const STATUS_MAP = {
     pending:   { cls: 'text-warning fw-700', label: '⏳ Pending' },
     confirmed: { cls: 'text-success fw-700', label: '✅ Confirmed' },
@@ -231,16 +250,15 @@
         tbody.innerHTML = orders.map(o => {
           const s = STATUS_MAP[o.status] || STATUS_MAP.pending;
           return `<tr>
-            <td><strong>${o.token_symbol}</strong>${o.token_name && o.token_name !== o.token_symbol ? '<br><span style="color:var(--text3);font-size:11px;">'+o.token_name+'</span>' : ''}</td>
+            <td><strong>${o.token_symbol}</strong></td>
             <td>$${parseFloat(o.amount_usd).toFixed(2)}</td>
             <td style="text-transform:capitalize;">${o.deposit_chain}</td>
             <td class="${s.cls}">${s.label}</td>
-            <td style="font-size:11px;white-space:nowrap;">${o.created_at}</td>
+            <td style="font-size:11px;">${o.created_at}</td>
             <td style="font-size:11px;color:var(--text3);">${o.admin_note || '—'}</td>
           </tr>`;
         }).join('');
-      })
-      .catch(() => {});
+      }).catch(() => {});
   }
 
   loadSwapOrders();
