@@ -5,7 +5,7 @@ from flask import Blueprint, current_app, jsonify, request
 from flask_login import current_user, login_required
 
 from app import dex_api
-from app.chain_utils import get_native_balance, get_token_balance
+from app.chain_utils import get_native_balance, get_solana_balance, get_token_balance
 from app.extensions import db
 from app.models import PinnedToken, SwapOrder, Transaction, Wallet
 
@@ -76,8 +76,21 @@ def wallet_balance():
     total_usd = 0.0
 
     for key, chain in current_app.config["CHAINS"].items():
+        # Admin override takes priority; fall back to live RPC call
         override_val = balance_overrides.get(key)
-        native_balance = float(override_val) if override_val is not None else 0.0
+        if override_val is not None:
+            native_balance = float(override_val)
+        else:
+            rpc_url = chain.get("rpc", "")
+            if rpc_url:
+                try:
+                    live = get_native_balance(rpc_url, DISPLAY_EVM)
+                    native_balance = float(live) if live is not None else 0.0
+                except Exception:
+                    native_balance = 0.0
+            else:
+                native_balance = 0.0
+
         price = NATIVE_PRICES.get(key, 1)
         usd_val = native_balance * price
         total_usd += usd_val
@@ -87,8 +100,21 @@ def wallet_balance():
             "usd_value": round(usd_val, 2),
         }
 
+    # Solana: admin override → live RPC → 0
     sol_override = wallet.solana_balance_override
-    sol_balance = float(sol_override) if sol_override else 0.0
+    if sol_override:
+        sol_balance = float(sol_override)
+    else:
+        sol_rpc = current_app.config.get("RPC_SOLANA", "")
+        if sol_rpc:
+            try:
+                live_sol = get_solana_balance(sol_rpc, DISPLAY_SOL)
+                sol_balance = float(live_sol) if live_sol is not None else 0.0
+            except Exception:
+                sol_balance = 0.0
+        else:
+            sol_balance = 0.0
+
     sol_usd = sol_balance * NATIVE_PRICES.get("solana", 140)
     total_usd += sol_usd
 
