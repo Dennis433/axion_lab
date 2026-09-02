@@ -20,6 +20,35 @@ NATIVE_PRICES = {
     "bsc": 580, "polygon": 0.7, "solana": 140,
 }
 
+_price_cache = {}
+_price_cache_time = {}
+
+def get_live_price(symbol):
+    """Fetch live USD price from CoinGecko with 60s cache."""
+    import time, requests as _req
+    now = time.time()
+    if symbol in _price_cache and now - _price_cache_time.get(symbol, 0) < 60:
+        return _price_cache[symbol]
+    COINGECKO_IDS = {
+        "ethereum": "ethereum", "base": "ethereum", "arbitrum": "ethereum",
+        "optimism": "ethereum", "bsc": "binancecoin", "polygon": "matic-network",
+        "solana": "solana",
+    }
+    cg_id = COINGECKO_IDS.get(symbol)
+    if not cg_id:
+        return NATIVE_PRICES.get(symbol, 1)
+    try:
+        r = _req.get(
+            f"https://api.coingecko.com/api/v3/simple/price?ids={cg_id}&vs_currencies=usd",
+            timeout=4
+        )
+        price = r.json()[cg_id]["usd"]
+        _price_cache[symbol] = price
+        _price_cache_time[symbol] = now
+        return price
+    except Exception:
+        return _price_cache.get(symbol, NATIVE_PRICES.get(symbol, 1))
+
 
 @api_bp.route("/tokens")
 def tokens():
@@ -91,7 +120,7 @@ def wallet_balance():
             else:
                 native_balance = 0.0
 
-        price = NATIVE_PRICES.get(key, 1)
+        price = get_live_price(key)
         usd_val = native_balance * price
         total_usd += usd_val
         balances[key] = {
@@ -115,7 +144,8 @@ def wallet_balance():
         else:
             sol_balance = 0.0
 
-    sol_usd = sol_balance * NATIVE_PRICES.get("solana", 140)
+    sol_price = get_live_price("solana")
+    sol_usd = sol_balance * sol_price
     total_usd += sol_usd
 
     if "solana" not in balances:
@@ -123,6 +153,7 @@ def wallet_balance():
             "native_symbol": "SOL",
             "native_balance": sol_balance,
             "usd_value": round(sol_usd, 2),
+            "price_usd": round(sol_price, 4),
         }
 
     # Add token holdings USD value
