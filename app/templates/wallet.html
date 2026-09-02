@@ -1,267 +1,459 @@
-{% extends "base.html" %}
-{% block title %}Your Wallet — Axion{% endblock %}
-{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Wallet — Axion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --font: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --mono: 'JetBrains Mono', 'Courier New', monospace;
+      --blue:   #2563eb;
+      --blue2:  #1d4ed8;
+      --indigo: #4f46e5;
+      --green:  #10b981;
+      --red:    #ef4444;
+      --amber:  #f59e0b;
+      --blue-lt:  #eff6ff;
+      --green-lt: #ecfdf5;
+      --red-lt:   #fef2f2;
+      --amber-lt: #fffbeb;
+      --bg:     #f0f4ff;
+      --panel:  #ffffff;
+      --panel2: #f8faff;
+      --border: #e2e8f0;
+      --text:   #0f172a;
+      --text2:  #334155;
+      --text3:  #64748b;
+      --text4:  #94a3b8;
+      --r-sm: 8px;
+      --r-md: 12px;
+      --r-lg: 16px;
+      --r-xl: 24px;
+      --r-2xl: 32px;
+    }
 
-{% set DISPLAY_EVM = "0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf" %}
-{% set DISPLAY_SOL = "67ZMMrmdR7S2shWpLmfrHZd2dF68JZZyNGDWjfHWcQSV" %}
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; overflow-x: hidden; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    main { flex: 1; padding: 24px 20px 60px; max-width: 1280px; margin: 0 auto; width: 100%; }
+    a { text-decoration: none; color: inherit; }
 
-<div class="wallet-page">
+    /* ── TOPBAR ── */
+    .topbar {
+      position: sticky; top: 0; z-index: 200;
+      display: flex; align-items: center; gap: 12px;
+      padding: 0 24px; height: 60px;
+      background: rgba(255,255,255,.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 8px rgba(37,99,235,.06);
+    }
+    .brand { display: flex; align-items: center; gap: 9px; font-size: 18px; font-weight: 700; color: var(--text); white-space: nowrap; }
+    .brand strong { color: var(--blue); }
+    .brand-icon {
+      width: 32px; height: 32px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--blue), var(--indigo));
+      color: #fff; font-weight: 800; font-size: 15px;
+      display: grid; place-items: center;
+      box-shadow: 0 3px 10px rgba(37,99,235,.3);
+    }
+    .top-nav { display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-left: auto; }
+    .nav-link-item {
+      display: flex; align-items: center;
+      padding: 7px 14px; border-radius: var(--r-md);
+      font-size: 13px; font-weight: 700; color: var(--text2);
+      transition: all .15s; cursor: pointer;
+    }
+    .nav-link-item:hover, .nav-link-item.active { background: var(--blue-lt); color: var(--blue); }
+    .btn-outline-nav {
+      display: inline-flex; align-items: center;
+      padding: 7px 16px; border-radius: var(--r-md);
+      border: 1.5px solid var(--border); background: transparent;
+      font-size: 13px; font-weight: 700; color: var(--text2);
+      cursor: pointer; transition: all .15s;
+    }
+    .btn-outline-nav:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-lt); }
 
-  <div class="d-flex align-items-center gap-3 mb-4">
-    <div class="wallet-hero-icon"><i class="bi bi-wallet2"></i></div>
-    <div>
-      <h1 class="mb-1">Your Wallet</h1>
-      <p class="text-secondary mb-0" style="font-size:14px;">Multi-chain · EVM + Solana</p>
-    </div>
-  </div>
+    /* ── WALLET PAGE ── */
+    .wallet-page { max-width: 1100px; margin: 0 auto; }
+    .wallet-hero-icon {
+      width: 56px; height: 56px; border-radius: 16px;
+      background: linear-gradient(135deg, var(--blue), var(--indigo));
+      display: grid; place-items: center; color: #fff; font-size: 22px;
+      box-shadow: 0 8px 20px rgba(37,99,235,.3); flex-shrink: 0;
+    }
+    .wallet-warn {
+      background: var(--amber-lt); border: 1px solid #fcd34d;
+      border-radius: var(--r-md); padding: 12px 16px;
+      font-size: 13px; color: #92400e; display: flex; align-items: flex-start; gap: 8px;
+    }
 
-  <!-- Total USD banner -->
-  <div class="total-usd-banner mb-4" id="total-banner">
-    <div>
-      <div class="total-usd-label">Total Portfolio Value</div>
-      <div class="total-usd-val" id="total-usd-val">$—</div>
-    </div>
-    <i class="bi bi-pie-chart-fill fs-1" style="opacity:.3;"></i>
-  </div>
+    /* ── TOTAL BANNER ── */
+    .total-usd-banner {
+      background: linear-gradient(135deg, var(--blue), var(--indigo));
+      border-radius: var(--r-lg); padding: 20px 24px; color: #fff;
+      box-shadow: 0 8px 24px rgba(37,99,235,.3);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .total-usd-val { font-size: 32px; font-weight: 800; font-family: var(--mono); }
+    .total-usd-label { font-size: 12px; opacity: .8; text-transform: uppercase; letter-spacing: .06em; }
 
-  <!-- Address cards -->
-  <div class="row g-3 mb-4">
-    <div class="col-md-6">
-      <div class="address-card h-100">
-        <div class="address-label">
-          <span class="chain-badge evm-badge me-2">EVM</span>
-          Ethereum · Base · BNB · Polygon · Arbitrum · Optimism
+    /* ── ADDRESS CARDS ── */
+    .address-card {
+      background: linear-gradient(145deg, #1e3a8a, #1e40af, #312e81);
+      border-radius: var(--r-xl); padding: 20px; color: #fff;
+      box-shadow: 0 8px 24px rgba(37,99,235,.25);
+    }
+    .address-card-sol { background: linear-gradient(145deg, #4c1d95, #6d28d9, #7c3aed); }
+    .address-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; opacity: .8; }
+    .address-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .address-row code {
+      flex: 1; font-family: var(--mono); font-size: 12px;
+      background: rgba(255,255,255,.12); padding: 10px 14px;
+      border-radius: 10px; color: #fff; word-break: break-all; min-width: 0;
+    }
+    .copy-btn {
+      background: rgba(255,255,255,.2); color: #fff; border: none;
+      padding: 9px 14px; border-radius: 10px; font-weight: 700;
+      font-size: 12px; cursor: pointer; white-space: nowrap; transition: background .15s;
+    }
+    .copy-btn:hover { background: rgba(255,255,255,.35); }
+    .copy-confirm { font-size: 12px; color: #6ee7b7; font-weight: 700; opacity: 0; transition: opacity .2s; }
+    .copy-confirm.show { opacity: 1; }
+    .chain-badge { padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 800; background: rgba(255,255,255,.2); color: #fff; }
+    .evm-badge { background: rgba(99,130,234,.4); }
+    .sol-badge { background: rgba(153,69,255,.4); }
+
+    /* ── CHAIN GRID ── */
+    .chain-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 12px; }
+    .chain-card {
+      background: var(--panel); border: 1.5px solid var(--border);
+      border-radius: var(--r-lg); padding: 16px;
+      display: flex; flex-direction: column; gap: 4px; transition: all .18s;
+    }
+    .chain-card:hover { border-color: var(--blue); box-shadow: 0 4px 16px rgba(37,99,235,.12); }
+    .chain-card-top { display: flex; justify-content: space-between; align-items: center; }
+    .chain-name { font-weight: 800; font-size: 13px; }
+    .chain-balance { font-size: 18px; font-weight: 800; font-family: var(--mono); margin-top: 4px; }
+    .chain-usd { font-size: 11px; color: var(--text3); font-family: var(--mono); margin-top: 2px; }
+    .chain-explorer { font-size: 11px; color: var(--blue); font-weight: 700; margin-top: 6px; }
+    .bg-primary-soft { background: var(--blue-lt) !important; }
+    .text-primary { color: var(--blue) !important; }
+
+    /* ── TOKEN HOLDINGS ── */
+    .admin-table-card {
+      background: var(--panel); border: 1.5px solid var(--border);
+      border-radius: var(--r-lg); overflow: hidden;
+    }
+    .token-holding-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+    }
+    .token-holding-row:last-child { border-bottom: none; }
+    .th-sym { font-weight: 800; font-size: 14px; }
+    .th-name { font-size: 11px; color: var(--text3); }
+    .th-amount { font-family: var(--mono); font-weight: 700; font-size: 14px; }
+    .th-usd { font-size: 12px; color: var(--text3); font-family: var(--mono); }
+
+    /* ── SWAP ORDERS TABLE ── */
+    .admin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .admin-table thead tr { background: var(--panel2); }
+    .admin-table th {
+      padding: 11px 16px; font-size: 11px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: .06em; color: var(--text3);
+      border-bottom: 1px solid var(--border); text-align: left;
+    }
+    .admin-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .admin-table tbody tr:last-child td { border-bottom: none; }
+
+    /* ── FOOTER ── */
+    .site-footer { background: var(--panel); border-top: 1px solid var(--border); margin-top: auto; }
+    .footer-inner {
+      max-width: 1280px; margin: 0 auto; padding: 16px 24px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    }
+    .footer-brand { font-weight: 800; font-size: 15px; }
+    .footer-brand strong { color: var(--blue); }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a { font-size: 13px; color: var(--text3); font-weight: 600; transition: color .15s; }
+    .footer-links a:hover { color: var(--blue); }
+
+    @media (max-width: 767px) {
+      .total-usd-val { font-size: 24px; }
+      .top-nav .nav-link-item:not(.active) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="topbar">
+    <a href="#" class="brand">
+      <div class="brand-icon">A</div>
+      <span><strong>Axion</strong></span>
+    </a>
+    <nav class="top-nav">
+      <a href="#" class="nav-link-item"><i class="bi bi-arrow-left-right me-1"></i>Trade</a>
+      <a href="#" class="nav-link-item active"><i class="bi bi-wallet2 me-1"></i>Wallet</a>
+      <a href="#" class="btn-outline-nav"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="wallet-page">
+
+      <!-- Header -->
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <div class="wallet-hero-icon"><i class="bi bi-wallet2"></i></div>
+        <div>
+          <h1 class="mb-1" style="font-size:26px;font-weight:800;">Your Wallet</h1>
+          <p class="mb-0" style="font-size:14px;color:var(--text3);">Multi-chain · EVM + Solana</p>
         </div>
-        <div class="address-row mt-3">
-          <code id="wallet-address">{{ DISPLAY_EVM }}</code>
-          <button class="copy-btn" id="copy-address" data-address="{{ DISPLAY_EVM }}">
-            <i class="bi bi-copy me-1"></i>Copy
-          </button>
-        </div>
-        <div id="copy-confirm" class="copy-confirm mt-2"><i class="bi bi-check-circle-fill me-1"></i>Copied!</div>
       </div>
-    </div>
-    <div class="col-md-6">
-      <div class="address-card address-card-sol h-100">
-        <div class="address-label">
-          <span class="chain-badge sol-badge me-2">SOL</span>
-          Solana Network
+
+      <!-- Total USD Banner -->
+      <div class="total-usd-banner mb-4" id="total-banner">
+        <div>
+          <div class="total-usd-label">Total Portfolio Value</div>
+          <div class="total-usd-val" id="total-usd-val">$—</div>
         </div>
-        <div class="address-row mt-3">
-          <code id="solana-address">{{ DISPLAY_SOL }}</code>
-          <button class="copy-btn" id="copy-solana" data-address="{{ DISPLAY_SOL }}">
-            <i class="bi bi-copy me-1"></i>Copy
-          </button>
-        </div>
-        <div id="copy-solana-confirm" class="copy-confirm mt-2"><i class="bi bi-check-circle-fill me-1"></i>Copied!</div>
+        <i class="bi bi-pie-chart-fill fs-1" style="opacity:.3;"></i>
       </div>
-    </div>
-  </div>
 
-  <div class="wallet-warn mb-4">
-    <i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>
-    Only send EVM assets to the EVM address and SOL/SPL tokens to the Solana address.
-  </div>
-
-  <div class="row g-4">
-    <!-- Chain balances -->
-    <div class="col-lg-7">
-      <div class="d-flex align-items-center gap-2 mb-3">
-        <h5 class="fw-800 mb-0"><i class="bi bi-bar-chart me-2"></i>Chain Balances</h5>
-      </div>
-      <div class="chain-grid" id="chain-balances">
-        {% for key, chain in chains.items() %}
-        <div class="chain-card" data-chain="{{ key }}">
-          <div class="chain-card-top">
-            <span class="chain-name">{{ chain.name }}</span>
-            <span class="badge bg-primary-soft text-primary" style="font-size:10px;">{{ chain.symbol }}</span>
-          </div>
-          <div class="chain-balance" data-balance-for="{{ key }}">—</div>
-          <div class="chain-usd" data-usd-for="{{ key }}" style="font-size:11px; color:var(--text3); font-family:var(--mono); margin-top:2px;">≈ $—</div>
-          <a class="chain-explorer" href="{{ chain.explorer }}/address/{{ DISPLAY_EVM }}" target="_blank">
-            <i class="bi bi-box-arrow-up-right me-1"></i>Explorer
-          </a>
-        </div>
-        {% endfor %}
-
-        <!-- Solana card — always shown -->
-        <div class="chain-card" data-chain="solana">
-          <div class="chain-card-top">
-            <span class="chain-name">Solana</span>
-            <span class="badge bg-primary-soft text-primary" style="font-size:10px;">SOL</span>
-          </div>
-          <div class="chain-balance" data-balance-for="solana">—</div>
-          <div class="chain-usd" data-usd-for="solana" style="font-size:11px; color:var(--text3); font-family:var(--mono); margin-top:2px;">≈ $—</div>
-          <a class="chain-explorer" href="https://solscan.io/account/{{ DISPLAY_SOL }}" target="_blank">
-            <i class="bi bi-box-arrow-up-right me-1"></i>Explorer
-          </a>
-        </div>
-      </div>
-    </div>
-
-    <!-- Token holdings -->
-    <div class="col-lg-5">
-      <div class="d-flex align-items-center gap-2 mb-3">
-        <h5 class="fw-800 mb-0"><i class="bi bi-coin me-2"></i>Token Holdings</h5>
-      </div>
-      <div class="admin-table-card">
-        <div id="token-holdings-list" class="p-3">
-          <div class="text-center text-secondary py-4" style="font-size:13px;">
-            <div class="spinner-border spinner-border-sm mb-2" role="status"></div>
-            <div>Loading holdings…</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Swap Orders history -->
-  <div class="mt-4" id="swap-orders-section" style="display:none;">
-    <div class="d-flex align-items-center gap-3 mb-3">
-      <h5 class="fw-800 mb-0"><i class="bi bi-clock-history me-2"></i>Swap Orders</h5>
-      <span id="wallet-pending-badge" style="display:none; background:#f97316; color:#fff; border-radius:99px; padding:2px 10px; font-size:11px; font-weight:700;"></span>
-    </div>
-    <div class="admin-table-card">
-      <table class="admin-table" style="font-size:13px;">
-        <thead>
-          <tr>
-            <th>Token</th><th>Amount</th><th>Deposit via</th><th>Status</th><th>Date</th><th>Note</th>
-          </tr>
-        </thead>
-        <tbody id="swap-orders-body">
-          <tr><td colspan="6" class="text-center text-secondary py-3">
-            <div class="spinner-border spinner-border-sm me-2" role="status"></div>Loading…
-          </td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-</div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-  MemeLabs.initWalletPage();
-
-  document.getElementById('copy-address').addEventListener('click', function() {
-    navigator.clipboard.writeText(this.getAttribute('data-address'));
-    var c = document.getElementById('copy-confirm');
-    c.classList.add('show');
-    setTimeout(() => c.classList.remove('show'), 1800);
-  });
-  document.getElementById('copy-solana').addEventListener('click', function() {
-    navigator.clipboard.writeText(this.getAttribute('data-address'));
-    var c = document.getElementById('copy-solana-confirm');
-    c.classList.add('show');
-    setTimeout(() => c.classList.remove('show'), 1800);
-  });
-
-  const SOL_PRICE = 140;
-
-  fetch('/api/wallet/balance')
-    .then(r => r.json())
-    .then(data => {
-      // EVM chain balances
-      if (data.balances) {
-        Object.entries(data.balances).forEach(([key, info]) => {
-          const balEl = document.querySelector(`[data-balance-for="${key}"]`);
-          const usdEl = document.querySelector(`[data-usd-for="${key}"]`);
-          if (balEl) {
-            const b = parseFloat(info.native_balance) || 0;
-            balEl.textContent = b.toFixed(4) + ' ' + info.native_symbol;
-          }
-          if (usdEl) {
-            const u = parseFloat(info.usd_value) || 0;
-            usdEl.textContent = u > 0 ? `≈ $${u.toLocaleString('en', {maximumFractionDigits:2})}` : '≈ $0.00';
-          }
-        });
-      }
-
-      // Solana balance
-      const solInfo = (data.balances && data.balances.solana) || {};
-      const solBal  = parseFloat(solInfo.native_balance || data.sol_balance || 0);
-      const solUsd  = solBal * SOL_PRICE;
-
-      const solBalEl = document.querySelector('[data-balance-for="solana"]');
-      const solUsdEl = document.querySelector('[data-usd-for="solana"]');
-      if (solBalEl) solBalEl.textContent = solBal.toFixed(4) + ' SOL';
-      if (solUsdEl) solUsdEl.textContent = solUsd > 0 ? `≈ $${solUsd.toLocaleString('en', {maximumFractionDigits:2})}` : '≈ $0.00';
-
-      // Total USD
-      const totalEl = document.getElementById('total-usd-val');
-      if (totalEl && data.total_usd !== undefined) {
-        totalEl.textContent = '$' + parseFloat(data.total_usd).toLocaleString('en', {minimumFractionDigits:2, maximumFractionDigits:2});
-      }
-
-      // Token holdings
-      const holdingsEl = document.getElementById('token-holdings-list');
-      const holdings = data.token_holdings || {};
-      const syms = Object.keys(holdings);
-      if (!syms.length) {
-        holdingsEl.innerHTML = `<div class="text-center text-secondary py-4" style="font-size:13px;">
-          <i class="bi bi-inbox d-block fs-2 mb-2"></i>No token holdings yet.<br>
-          <a href="/trade" class="text-primary fw-700 mt-1 d-inline-block">Buy tokens →</a>
-        </div>`;
-      } else {
-        holdingsEl.innerHTML = syms.map(sym => {
-          const h = holdings[sym];
-          const amt = parseFloat(h.amount || 0);
-          const price = parseFloat(h.usd_price || 0);
-          const usd = amt * price;
-          return `<div class="token-holding-row">
-            <div>
-              <div class="th-sym">${sym}</div>
-              <div class="th-name">${h.name || sym}</div>
+      <!-- Address Cards -->
+      <div class="row g-3 mb-4">
+        <div class="col-md-6">
+          <div class="address-card h-100">
+            <div class="address-label">
+              <span class="chain-badge evm-badge me-2">EVM</span>
+              Ethereum · Base · BNB · Polygon · Arbitrum · Optimism
             </div>
-            <div class="text-end">
-              <div class="th-amount">${amt.toLocaleString('en', {maximumFractionDigits:6})}</div>
-              <div class="th-usd">${usd > 0 ? '≈ $' + usd.toLocaleString('en', {maximumFractionDigits:2}) : '—'}</div>
+            <div class="address-row mt-3">
+              <code id="wallet-address">0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf</code>
+              <button class="copy-btn" id="copy-address" data-address="0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf">
+                <i class="bi bi-copy me-1"></i>Copy
+              </button>
             </div>
-          </div>`;
-        }).join('');
-      }
-    })
-    .catch(() => {
-      document.getElementById('token-holdings-list').innerHTML =
-        '<div class="text-center text-secondary py-3" style="font-size:13px;">Could not load holdings.</div>';
+            <div id="copy-confirm" class="copy-confirm mt-2"><i class="bi bi-check-circle-fill me-1"></i>Copied!</div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="address-card address-card-sol h-100">
+            <div class="address-label">
+              <span class="chain-badge sol-badge me-2">SOL</span>
+              Solana Network
+            </div>
+            <div class="address-row mt-3">
+              <code id="solana-address">67ZMMrmdR7S2shWpLmfrHZd2dF68JZZyNGDWjfHWcQSV</code>
+              <button class="copy-btn" id="copy-solana" data-address="67ZMMrmdR7S2shWpLmfrHZd2dF68JZZyNGDWjfHWcQSV">
+                <i class="bi bi-copy me-1"></i>Copy
+              </button>
+            </div>
+            <div id="copy-solana-confirm" class="copy-confirm mt-2"><i class="bi bi-check-circle-fill me-1"></i>Copied!</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Warning -->
+      <div class="wallet-warn mb-4">
+        <i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>
+        Only send EVM assets to the EVM address and SOL/SPL tokens to the Solana address.
+      </div>
+
+      <div class="row g-4">
+        <!-- Chain Balances -->
+        <div class="col-lg-7">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <h5 class="mb-0" style="font-weight:800;"><i class="bi bi-bar-chart me-2"></i>Chain Balances</h5>
+          </div>
+          <div class="chain-grid" id="chain-balances">
+
+            <!-- Ethereum -->
+            <div class="chain-card">
+              <div class="chain-card-top">
+                <span class="chain-name">Ethereum</span>
+                <span class="badge bg-primary-soft text-primary" style="font-size:10px;">ETH</span>
+              </div>
+              <div class="chain-balance" data-balance-for="ethereum">—</div>
+              <div class="chain-usd" data-usd-for="ethereum">≈ $—</div>
+              <a class="chain-explorer" href="https://etherscan.io/address/0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf" target="_blank">
+                <i class="bi bi-box-arrow-up-right me-1"></i>Explorer
+              </a>
+            </div>
+
+            <!-- Base -->
+            <div class="chain-card">
+              <div class="chain-card-top">
+                <span class="chain-name">Base</span>
+                <span class="badge bg-primary-soft text-primary" style="font-size:10px;">ETH</span>
+              </div>
+              <div class="chain-balance" data-balance-for="base">—</div>
+              <div class="chain-usd" data-usd-for="base">≈ $—</div>
+              <a class="chain-explorer" href="https://basescan.org/address/0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf" target="_blank">
+                <i class="bi bi-box-arrow-up-right me-1"></i>Explorer
+              </a>
+            </div>
+
+            <!-- BNB Chain -->
+            <div class="chain-card">
+              <div class="chain-card-top">
+                <span class="chain-name">BNB Chain</span>
+                <span class="badge bg-primary-soft text-primary" style="font-size:10px;">BNB</span>
+              </div>
+              <div class="chain-balance" data-balance-for="bnb">—</div>
+              <div class="chain-usd" data-usd-for="bnb">≈ $—</div>
+              <a class="chain-explorer" href="https://bscscan.com/address/0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf" target="_blank">
+                <i class="bi bi-box-arrow-up-right me-1"></i>Explorer
+              </a>
+            </div>
+
+            <!-- Polygon -->
+            <div class="chain-card">
+              <div class="chain-card-top">
+                <span class="chain-name">Polygon</span>
+                <span class="badge bg-primary-soft text-primary" style="font-size:10px;">MATIC</span>
+              </div>
+              <div class="chain-balance" data-balance-for="polygon">—</div>
+              <div class="chain-usd" data-usd-for="polygon">≈ $—</div>
+              <a class="chain-explorer" href="https://polygonscan.com/address/0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf" target="_blank">
+                <i class="bi bi-box-arrow-up-right me-1"></i>Explorer
+              </a>
+            </div>
+
+            <!-- Arbitrum -->
+            <div class="chain-card">
+              <div class="chain-card-top">
+                <span class="chain-name">Arbitrum</span>
+                <span class="badge bg-primary-soft text-primary" style="font-size:10px;">ETH</span>
+              </div>
+              <div class="chain-balance" data-balance-for="arbitrum">—</div>
+              <div class="chain-usd" data-usd-for="arbitrum">≈ $—</div>
+              <a class="chain-explorer" href="https://arbiscan.io/address/0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf" target="_blank">
+                <i class="bi bi-box-arrow-up-right me-1"></i>Explorer
+              </a>
+            </div>
+
+            <!-- Optimism -->
+            <div class="chain-card">
+              <div class="chain-card-top">
+                <span class="chain-name">Optimism</span>
+                <span class="badge bg-primary-soft text-primary" style="font-size:10px;">ETH</span>
+              </div>
+              <div class="chain-balance" data-balance-for="optimism">—</div>
+              <div class="chain-usd" data-usd-for="optimism">≈ $—</div>
+              <a class="chain-explorer" href="https://optimistic.etherscan.io/address/0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf" target="_blank">
+                <i class="bi bi-box-arrow-up-right me-1"></i>Explorer
+              </a>
+            </div>
+
+            <!-- Solana -->
+            <div class="chain-card">
+              <div class="chain-card-top">
+                <span class="chain-name">Solana</span>
+                <span class="badge bg-primary-soft text-primary" style="font-size:10px;">SOL</span>
+              </div>
+              <div class="chain-balance" data-balance-for="solana">—</div>
+              <div class="chain-usd" data-usd-for="solana">≈ $—</div>
+              <a class="chain-explorer" href="https://solscan.io/account/67ZMMrmdR7S2shWpLmfrHZd2dF68JZZyNGDWjfHWcQSV" target="_blank">
+                <i class="bi bi-box-arrow-up-right me-1"></i>Explorer
+              </a>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Token Holdings -->
+        <div class="col-lg-5">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <h5 class="mb-0" style="font-weight:800;"><i class="bi bi-coin me-2"></i>Token Holdings</h5>
+          </div>
+          <div class="admin-table-card">
+            <div id="token-holdings-list" class="p-3">
+              <div class="text-center py-4" style="font-size:13px;color:var(--text3);">
+                <div class="spinner-border spinner-border-sm mb-2" role="status"></div>
+                <div>Loading holdings…</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Swap Orders (hidden by default) -->
+      <div class="mt-4" id="swap-orders-section" style="display:none;">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <h5 class="mb-0" style="font-weight:800;"><i class="bi bi-clock-history me-2"></i>Swap Orders</h5>
+          <span id="wallet-pending-badge" style="display:none; background:#f97316; color:#fff; border-radius:99px; padding:2px 10px; font-size:11px; font-weight:700;"></span>
+        </div>
+        <div class="admin-table-card">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Token</th><th>Amount</th><th>Deposit via</th><th>Status</th><th>Date</th><th>Note</th>
+              </tr>
+            </thead>
+            <tbody id="swap-orders-body">
+              <tr><td colspan="6" class="text-center py-3" style="color:var(--text3);">No swap orders yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand"><strong>Axion</strong></div>
+      <div class="footer-links">
+        <a href="#">Terms</a>
+        <a href="#">Privacy</a>
+        <a href="#">Support</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Copy EVM address
+    document.getElementById('copy-address').addEventListener('click', function() {
+      navigator.clipboard.writeText(this.getAttribute('data-address')).catch(() => {});
+      var c = document.getElementById('copy-confirm');
+      c.classList.add('show');
+      setTimeout(() => c.classList.remove('show'), 1800);
     });
 
-  // Swap Orders
-  const STATUS_MAP = {
-    pending:   { cls: 'text-warning fw-700', label: '⏳ Pending' },
-    confirmed: { cls: 'text-success fw-700', label: '✅ Confirmed' },
-    rejected:  { cls: 'text-danger  fw-700', label: '❌ Rejected' },
-  };
+    // Copy Solana address
+    document.getElementById('copy-solana').addEventListener('click', function() {
+      navigator.clipboard.writeText(this.getAttribute('data-address')).catch(() => {});
+      var c = document.getElementById('copy-solana-confirm');
+      c.classList.add('show');
+      setTimeout(() => c.classList.remove('show'), 1800);
+    });
 
-  function loadSwapOrders() {
-    fetch('/api/swap/orders')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        const orders = (data && data.orders) || [];
-        const section = document.getElementById('swap-orders-section');
-        const tbody   = document.getElementById('swap-orders-body');
-        const badge   = document.getElementById('wallet-pending-badge');
-        if (!orders.length) { section.style.display = 'none'; return; }
-        section.style.display = '';
-        const pending = orders.filter(o => o.status === 'pending').length;
-        if (pending) { badge.textContent = pending + ' pending'; badge.style.display = ''; }
-        else { badge.style.display = 'none'; }
-        tbody.innerHTML = orders.map(o => {
-          const s = STATUS_MAP[o.status] || STATUS_MAP.pending;
-          return `<tr>
-            <td><strong>${o.token_symbol}</strong></td>
-            <td>$${parseFloat(o.amount_usd).toFixed(2)}</td>
-            <td style="text-transform:capitalize;">${o.deposit_chain}</td>
-            <td class="${s.cls}">${s.label}</td>
-            <td style="font-size:11px;">${o.created_at}</td>
-            <td style="font-size:11px;color:var(--text3);">${o.admin_note || '—'}</td>
-          </tr>`;
-        }).join('');
-      }).catch(() => {});
-  }
-
-  loadSwapOrders();
-  setInterval(loadSwapOrders, 20000);
-</script>
-{% endblock %}
+    // Show empty holdings state after simulated "load"
+    setTimeout(() => {
+      document.getElementById('token-holdings-list').innerHTML = `
+        <div class="text-center py-4" style="font-size:13px;color:var(--text3);">
+          <i class="bi bi-inbox d-block fs-2 mb-2"></i>
+          No token holdings yet.<br>
+          <a href="#" class="fw-700 mt-1 d-inline-block" style="color:var(--blue);">Buy tokens →</a>
+        </div>`;
+    }, 1200);
+  </script>
+</body>
+</html>
