@@ -60,11 +60,21 @@ def create_app():
     migrate.init_app(app, db)
     login_manager.init_app(app)
 
+    from flask import request, jsonify, redirect, url_for
     from app.models import User
 
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(user_id)
+
+    @login_manager.unauthorized_handler
+    def handle_unauthorized():
+        # API routes must return JSON 401, not an HTML 302 redirect to /login.
+        # Without this, fetch('/api/wallet/balance') receives an HTML page,
+        # r.json() throws, and the entire wallet UI silently stays blank.
+        if request.path.startswith("/api/"):
+            return jsonify({"error": "not authenticated"}), 401
+        return redirect(url_for("main.login"))
 
     from app.routes.main import main_bp
     from app.routes.api import api_bp
