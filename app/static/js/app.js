@@ -617,7 +617,11 @@ const Axion = (() => {
     wireCopyButton("copy-solana", "copy-solana-confirm");
 
     fetch("/api/wallet/balance", { cache: "no-store" })
-      .then((r) => r.json())
+      .then((r) => {
+        if (r.status === 401) throw new Error("unauthenticated");
+        if (!r.ok) throw new Error("http_" + r.status);
+        return r.json();
+      })
       .then((data) => {
         // ── Chain balances (native + USD) ──────────────────────────────
         if (data.balances) {
@@ -677,11 +681,19 @@ const Axion = (() => {
           }
         }
       })
-      .catch(() => {
+      .catch((err) => {
+        // Update every balance cell so the user sees an error instead of forever-dashes.
+        const isAuth = err && err.message === "unauthenticated";
+        const msg = isAuth ? "Login required" : "Error";
+        document.querySelectorAll("[data-balance-for]").forEach(el => { el.textContent = msg; });
+        document.querySelectorAll("[data-usd-for]").forEach(el => { el.textContent = ""; });
+        const totalEl = document.getElementById("total-usd-val");
+        if (totalEl) totalEl.textContent = isAuth ? "—" : "$—";
         const holdingsEl = document.getElementById("token-holdings-list");
         if (holdingsEl) {
-          holdingsEl.innerHTML =
-            '<div class="text-center text-secondary py-3" style="font-size:13px;">Could not load holdings.</div>';
+          holdingsEl.innerHTML = isAuth
+            ? '<div class="text-center text-secondary py-3" style="font-size:13px;"><a href="/login">Log in</a> to see your holdings.</div>'
+            : '<div class="text-center text-secondary py-3" style="font-size:13px;">Could not load holdings.</div>';
         }
       });
   }
