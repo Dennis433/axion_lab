@@ -445,7 +445,6 @@ const Axion = (() => {
         if (!walletData.balances) { balRows.innerHTML = ""; return; }
 
         const usdOf = (id) => (prices[id] && prices[id].usd) ? prices[id].usd : 0;
-        let grandTotal = 0;
         const rows = [];
 
         // Only process ETH, BNB, SOL in that order
@@ -456,7 +455,6 @@ const Axion = (() => {
           const bal  = (info.native_balance !== null && info.native_balance !== undefined) ? Number(info.native_balance) : 0;
           const price = usdOf(meta.id);
           const usd   = bal * price;
-          grandTotal += usd;
           if (bal === 0) return; // hide zero-balance chains
           rows.push({ meta, bal, price, usd });
         });
@@ -486,11 +484,12 @@ const Axion = (() => {
           ? html.join("")
           : '<div style="font-size:11px; color:rgba(255,255,255,.4); text-align:center; padding:8px 0;">No assets yet</div>';
 
-        // Update total
+        // ── Use API total_usd (same source as wallet page) ──
         if (totalEl) {
-          if (grandTotal > 0) {
+          const apiTotal = parseFloat(walletData.total_usd) || 0;
+          if (apiTotal > 0) {
             totalEl.innerHTML = '<span style="font-size:16px; font-weight:700; opacity:.7;">$</span>'
-              + grandTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              + apiTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
           } else {
             totalEl.innerHTML = '<span style="opacity:.35; font-size:22px;">$0.00</span>';
           }
@@ -507,7 +506,6 @@ const Axion = (() => {
           solana:   { label: "Solana",   sym: "SOL", id: "solana" },
         };
         const usdOf = (id) => (prices && prices[id] && prices[id].usd) ? prices[id].usd : 0;
-        let grandTotal = 0;
         const rows = [];
 
         // Only process the 3 chains — in fixed order, skip any with 0 balance
@@ -519,7 +517,6 @@ const Axion = (() => {
           if (bal === 0) return;
           const price = usdOf(meta.id);
           const usd = bal * price;
-          grandTotal += usd;
           rows.push({ meta, bal, price, usd });
         });
 
@@ -549,10 +546,12 @@ const Axion = (() => {
             ? html.join("")
             : '<div style="font-size:11px; color:rgba(255,255,255,.4); text-align:center; padding:8px 0;">No assets yet</div>';
         }
+        // ── Use API total_usd (same source as wallet page) ──
         if (totalEl) {
-          if (grandTotal > 0) {
+          const apiTotal = parseFloat(walletData.total_usd) || 0;
+          if (apiTotal > 0) {
             totalEl.innerHTML = '<span style="font-size:16px; font-weight:700; opacity:.7;">$</span>'
-              + grandTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              + apiTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
           } else {
             totalEl.innerHTML = '<span style="opacity:.35; font-size:22px;">$0.00</span>';
           }
