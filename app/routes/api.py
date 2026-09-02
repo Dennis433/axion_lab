@@ -104,6 +104,8 @@ def wallet_balance():
     balances = {}
     total_usd = 0.0
 
+    evm_address = wallet.address  # use the logged-in user's actual wallet address
+
     for key, chain in current_app.config["CHAINS"].items():
         # Admin override takes priority; fall back to live RPC call
         override_val = balance_overrides.get(key)
@@ -113,7 +115,7 @@ def wallet_balance():
             rpc_url = chain.get("rpc", "")
             if rpc_url:
                 try:
-                    live = get_native_balance(rpc_url, DISPLAY_EVM)
+                    live = get_native_balance(rpc_url, evm_address)
                     native_balance = float(live) if live is not None else 0.0
                 except Exception:
                     native_balance = 0.0
@@ -163,7 +165,7 @@ def wallet_balance():
         total_usd += amt * price_usd
 
     resp = jsonify({
-        "address": DISPLAY_EVM,
+        "address": evm_address,
         "balances": balances,
         "token_holdings": token_holdings,
         "total_usd": round(total_usd, 2),
