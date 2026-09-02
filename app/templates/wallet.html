@@ -142,91 +142,25 @@
 
 {% block scripts %}
 <script>
+  // initWalletPage() in app.js handles the /api/wallet/balance fetch,
+  // chain balances, total USD, and token holdings — no duplicate fetch here.
   MemeLabs.initWalletPage();
 
+  // Copy-to-clipboard for EVM address
   document.getElementById('copy-address').addEventListener('click', function() {
     navigator.clipboard.writeText(this.getAttribute('data-address'));
     var c = document.getElementById('copy-confirm');
     c.classList.add('show');
     setTimeout(() => c.classList.remove('show'), 1800);
   });
+
+  // Copy-to-clipboard for Solana address
   document.getElementById('copy-solana').addEventListener('click', function() {
     navigator.clipboard.writeText(this.getAttribute('data-address'));
     var c = document.getElementById('copy-solana-confirm');
     c.classList.add('show');
     setTimeout(() => c.classList.remove('show'), 1800);
   });
-
-  
-
-  fetch('/api/wallet/balance')
-    .then(r => r.json())
-    .then(data => {
-      // EVM chain balances
-      if (data.balances) {
-        Object.entries(data.balances).forEach(([key, info]) => {
-          const balEl = document.querySelector(`[data-balance-for="${key}"]`);
-          const usdEl = document.querySelector(`[data-usd-for="${key}"]`);
-          if (balEl) {
-            const b = parseFloat(info.native_balance) || 0;
-            balEl.textContent = b.toFixed(4) + ' ' + info.native_symbol;
-          }
-          if (usdEl) {
-            const u = parseFloat(info.usd_value) || 0;
-            usdEl.textContent = u > 0 ? `≈ $${u.toLocaleString('en', {maximumFractionDigits:2})}` : '≈ $0.00';
-          }
-        });
-      }
-
-      // Solana balance — use price from API so it matches sidebar
-      const solInfo  = (data.balances && data.balances.solana) || {};
-      const solBal   = parseFloat(solInfo.native_balance || data.sol_balance || 0);
-      const solPrice = parseFloat(solInfo.price_usd || 140);
-      const solUsd   = solBal * solPrice;
-
-      const solBalEl = document.querySelector('[data-balance-for="solana"]');
-      const solUsdEl = document.querySelector('[data-usd-for="solana"]');
-      if (solBalEl) solBalEl.textContent = solBal.toFixed(4) + ' SOL';
-      if (solUsdEl) solUsdEl.textContent = solUsd > 0 ? `≈ $${solUsd.toLocaleString('en', {maximumFractionDigits:2})}` : '≈ $0.00';
-
-      // Total USD
-      const totalEl = document.getElementById('total-usd-val');
-      if (totalEl && data.total_usd !== undefined) {
-        totalEl.textContent = '$' + parseFloat(data.total_usd).toLocaleString('en', {minimumFractionDigits:2, maximumFractionDigits:2});
-      }
-
-      // Token holdings
-      const holdingsEl = document.getElementById('token-holdings-list');
-      const holdings = data.token_holdings || {};
-      const syms = Object.keys(holdings);
-      if (!syms.length) {
-        holdingsEl.innerHTML = `<div class="text-center text-secondary py-4" style="font-size:13px;">
-          <i class="bi bi-inbox d-block fs-2 mb-2"></i>No token holdings yet.<br>
-          <a href="/trade" class="text-primary fw-700 mt-1 d-inline-block">Buy tokens →</a>
-        </div>`;
-      } else {
-        holdingsEl.innerHTML = syms.map(sym => {
-          const h = holdings[sym];
-          const amt = parseFloat(h.amount || 0);
-          const price = parseFloat(h.usd_price || 0);
-          const usd = amt * price;
-          return `<div class="token-holding-row">
-            <div>
-              <div class="th-sym">${sym}</div>
-              <div class="th-name">${h.name || sym}</div>
-            </div>
-            <div class="text-end">
-              <div class="th-amount">${amt.toLocaleString('en', {maximumFractionDigits:6})}</div>
-              <div class="th-usd">${usd > 0 ? '≈ $' + usd.toLocaleString('en', {maximumFractionDigits:2}) : '—'}</div>
-            </div>
-          </div>`;
-        }).join('');
-      }
-    })
-    .catch(() => {
-      document.getElementById('token-holdings-list').innerHTML =
-        '<div class="text-center text-secondary py-3" style="font-size:13px;">Could not load holdings.</div>';
-    });
 
   // Swap Orders
   const STATUS_MAP = {
