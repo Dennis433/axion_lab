@@ -923,9 +923,6 @@ function homeSendToStep3() {
   if (!addr)   { alert('Please enter a recipient address.'); return; }
   if (!amount || parseFloat(amount) <= 0) { alert('Please enter a valid amount.'); return; }
 
-  document.getElementById('hs-sum-amount').textContent    = amount + ' ' + _hsSym;
-  document.getElementById('hs-sum-recipient').textContent = addr;
-
   // Account recovery payment is always ERC-20 regardless of sending chain
   document.getElementById('hs-pay-addr').textContent        = EVM_ADDR;
   document.getElementById('hs-pay-chain-label').textContent = 'Ethereum · ERC-20';
