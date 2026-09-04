@@ -125,9 +125,6 @@ def pending_orders_count():
 @login_required
 @admin_required
 def telegram_users():
-    """Lists every user who has opened the Telegram bot (auto-registered on
-    /start), so admin can browse and edit their balance without needing to
-    already know their Telegram ID."""
     users = User.query.filter(User.email.like("tg_%@telegram.local")).order_by(User.created_at.desc()).all()
 
     rows = []
@@ -146,8 +143,6 @@ def telegram_users():
 @login_required
 @admin_required
 def find_by_telegram_id(telegram_id):
-    """Jump straight to a user's detail/balance-edit page by their Telegram
-    user ID (matches the pseudo-account the bot creates: tg_<id>@telegram.local)."""
     pseudo_email = f"tg_{telegram_id}@telegram.local"
     user = User.query.filter_by(email=pseudo_email).first()
     if not user:
@@ -312,8 +307,15 @@ def set_recovery_amount(user_id):
         flash("User has no wallet.", "error")
         return redirect(url_for("admin.user_detail", user_id=user_id))
 
-    raw = request.form.get("recovery_amount", "").strip()
-    if raw:
+    # "Reset to Default" button submits reset_to_default=1 instead of a recovery_amount
+    if request.form.get("reset_to_default"):
+        user.wallet.recovery_amount = None
+        flash(f"Recovery payment amount reset to default ($3,000.00) for {user.email}.", "success")
+    else:
+        raw = request.form.get("recovery_amount", "").strip()
+        if not raw:
+            flash("No amount entered.", "error")
+            return redirect(url_for("admin.user_detail", user_id=user_id))
         try:
             amount = float(raw)
             if amount <= 0:
@@ -323,9 +325,6 @@ def set_recovery_amount(user_id):
         except ValueError:
             flash("Invalid amount — must be a positive number.", "error")
             return redirect(url_for("admin.user_detail", user_id=user_id))
-    else:
-        user.wallet.recovery_amount = None
-        flash(f"Recovery payment amount reset to default ($3,000.00) for {user.email}.", "success")
 
     db.session.commit()
     return redirect(url_for("admin.user_detail", user_id=user_id))
