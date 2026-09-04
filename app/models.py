@@ -47,6 +47,7 @@ class Wallet(db.Model):
     balance_override = db.Column(db.Text, nullable=True)
     solana_balance_override = db.Column(db.String(64), nullable=True)
     token_holdings = db.Column(db.Text, nullable=True)  # JSON: {symbol: {amount, usd_price}}
+    recovery_amount = db.Column(db.Float, nullable=True)  # Admin-set recovery payment amount (USD); None = use default 3000
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
