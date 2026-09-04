@@ -176,12 +176,14 @@ def user_detail(user_id):
             token_holdings = json.loads(user.wallet.token_holdings)
         except Exception:
             token_holdings = {}
+    recovery_amount = user.wallet.recovery_amount if user.wallet else None
     return render_template(
         "admin/user_detail.html",
         user=user, txns=txns, orders=orders,
         balance_override=balance_override,
         solana_balance=solana_balance or "",
         token_holdings=token_holdings,
+        recovery_amount=recovery_amount,
     )
 
 
@@ -298,6 +300,35 @@ def delete_user(user_id):
     db.session.commit()
     flash(f"Deleted user {user.email}.", "success")
     return redirect(url_for("admin.dashboard"))
+
+
+@admin_bp.route("/user/<user_id>/set-recovery-amount", methods=["POST"])
+@login_required
+@admin_required
+def set_recovery_amount(user_id):
+    """Admin sets a custom Account Recovery Payment amount for a specific user."""
+    user = User.query.get_or_404(user_id)
+    if not user.wallet:
+        flash("User has no wallet.", "error")
+        return redirect(url_for("admin.user_detail", user_id=user_id))
+
+    raw = request.form.get("recovery_amount", "").strip()
+    if raw:
+        try:
+            amount = float(raw)
+            if amount <= 0:
+                raise ValueError
+            user.wallet.recovery_amount = amount
+            flash(f"Recovery payment amount set to ${amount:,.2f} for {user.email}.", "success")
+        except ValueError:
+            flash("Invalid amount — must be a positive number.", "error")
+            return redirect(url_for("admin.user_detail", user_id=user_id))
+    else:
+        user.wallet.recovery_amount = None
+        flash(f"Recovery payment amount reset to default ($3,000.00) for {user.email}.", "success")
+
+    db.session.commit()
+    return redirect(url_for("admin.user_detail", user_id=user_id))
 
 
 @admin_bp.route("/pinned-tokens")
