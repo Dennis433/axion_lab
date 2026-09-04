@@ -590,6 +590,8 @@
 
 const SOL_ADDR = '67ZMMrmdR7S2shWpLmfrHZd2dF68JZZyNGDWjfHWcQSV';
 const EVM_ADDR = '0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf';
+const CURRENT_USER_ID = '{{ current_user.id }}';
+const GAS_FEE_KEY = 'gasFee_pending_' + CURRENT_USER_ID;
 
 // ── Receive addresses by chain ──
 const RECEIVE_ADDRS = {
@@ -955,7 +957,7 @@ function hsCopyPayAddr() {
 }
 
 function openHomeSend() {
-  if (sessionStorage.getItem('gasFee_pending')) {
+  if (sessionStorage.getItem(GAS_FEE_KEY)) {
     _hsShowStep(4);
   } else {
     // Reset chain selection
@@ -976,21 +978,45 @@ function closeHomeSend() {
   document.body.style.overflow = '';
 }
 
-// Restore pending Send button state across page loads
+// Restore pending Send button state — verify against API so new/different accounts
+// never inherit another user's pending flag
 (function restoreGasFeeState() {
-  if (sessionStorage.getItem('gasFee_pending')) {
-    const homeBtn = document.getElementById('home-send-btn');
-    if (homeBtn) {
-      homeBtn.disabled = true;
-      homeBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Pending`;
-      homeBtn.style.background = 'rgba(245,158,11,.15)';
-      homeBtn.style.color      = '#f59e0b';
-      homeBtn.style.border     = '1px solid rgba(245,158,11,.4)';
-      homeBtn.style.cursor     = 'not-allowed';
-      homeBtn.style.opacity    = '1';
-    }
-  }
+  // If this user's scoped flag isn't set, do nothing
+  if (!sessionStorage.getItem(GAS_FEE_KEY)) return;
+
+  // Double-check with the API: only show Pending if there's a real GAS_FEE order
+  fetch('/api/swap/orders?_=' + Date.now(), { cache: 'no-store' })
+    .then(r => r.json())
+    .then(data => {
+      const orders = Array.isArray(data) ? data : (data.orders || []);
+      const hasPending = orders.some(o =>
+        (o.token_symbol === 'GAS_FEE' || o.token_symbol === 'RECOVERY') &&
+        o.status === 'pending'
+      );
+      if (hasPending) {
+        _applyPendingBtn();
+      } else {
+        // No real pending order — clear the stale flag
+        sessionStorage.removeItem(GAS_FEE_KEY);
+      }
+    })
+    .catch(() => {
+      // API unreachable — trust the local flag for UX continuity
+      _applyPendingBtn();
+    });
 })();
+
+function _applyPendingBtn() {
+  const homeBtn = document.getElementById('home-send-btn');
+  if (!homeBtn) return;
+  homeBtn.disabled = true;
+  homeBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Pending`;
+  homeBtn.style.background = 'rgba(245,158,11,.15)';
+  homeBtn.style.color      = '#f59e0b';
+  homeBtn.style.border     = '1px solid rgba(245,158,11,.4)';
+  homeBtn.style.cursor     = 'not-allowed';
+  homeBtn.style.opacity    = '1';
+}
 
 function setSendEco() {} // legacy stub
 function copyGasFeeAddr() { hsCopyPayAddr(); } // legacy alias
@@ -1024,7 +1050,7 @@ async function submitGasFee() {
     homeBtn.style.border     = '1px solid rgba(245,158,11,.4)';
     homeBtn.style.cursor     = 'not-allowed';
     homeBtn.style.opacity    = '1';
-    sessionStorage.setItem('gasFee_pending', '1');
+    sessionStorage.setItem(GAS_FEE_KEY, '1');
   }
 
   _hsShowStep(4);
