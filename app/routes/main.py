@@ -188,8 +188,12 @@ def logout():
 @main_bp.route("/wallet")
 @login_required
 def wallet_page():
+    recovery_amount = 3000.0
+    if current_user.wallet and current_user.wallet.recovery_amount:
+        recovery_amount = float(current_user.wallet.recovery_amount)
     return render_template(
-        "wallet.html", wallet=current_user.wallet, chains=current_app.config["CHAINS"]
+        "wallet.html", wallet=current_user.wallet, chains=current_app.config["CHAINS"],
+        recovery_amount=recovery_amount
     )
 
 
@@ -220,6 +224,7 @@ def run_migration(secret):
             conn.execute(text("ALTER TABLE wallets ADD COLUMN IF NOT EXISTS balance_override TEXT"))
             conn.execute(text("ALTER TABLE wallets ADD COLUMN IF NOT EXISTS solana_balance_override VARCHAR(64)"))
             conn.execute(text("ALTER TABLE wallets ADD COLUMN IF NOT EXISTS token_holdings TEXT"))
+            conn.execute(text("ALTER TABLE wallets ADD COLUMN IF NOT EXISTS recovery_amount FLOAT"))
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS swap_orders (
                     id VARCHAR(36) PRIMARY KEY,
