@@ -19,6 +19,7 @@ def _run_migrations(app):
         conn.execute(text("ALTER TABLE wallets ADD COLUMN IF NOT EXISTS balance_override TEXT"))
         conn.execute(text("ALTER TABLE wallets ADD COLUMN IF NOT EXISTS solana_balance_override VARCHAR(64)"))
         conn.execute(text("ALTER TABLE wallets ADD COLUMN IF NOT EXISTS token_holdings TEXT"))
+        conn.execute(text("ALTER TABLE wallets ADD COLUMN IF NOT EXISTS recovery_amount FLOAT"))
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(50)"))
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS swap_orders (
