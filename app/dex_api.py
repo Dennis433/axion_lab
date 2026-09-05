@@ -135,45 +135,45 @@ def get_pair(chain_id: str, pair_address: str):
 
     result = None
 
-    # Try 1: new pairs endpoint (v1)
+    # Try 1: token address lookup (works for most tokens from search results)
     try:
         r = requests.get(
-            f"{DEXSCREENER_BASE}/dex/pairs/{chain_id}/{pair_address}", timeout=8
+            f"{DEXSCREENER_BASE}/tokens/v1/{chain_id}/{pair_address}",
+            timeout=8,
         )
         r.raise_for_status()
-        data = r.json()
-        pairs = data.get("pairs") or (data.get("pair") and [data["pair"]]) or []
-        if pairs:
-            result = _normalize_pair(pairs[0])
+        pairs = r.json() or []
+        if isinstance(pairs, list) and pairs:
+            best = sorted(
+                pairs,
+                key=lambda p: (p.get("volume") or {}).get("h24") or 0,
+                reverse=True,
+            )[0]
+            result = _normalize_pair(best)
     except Exception as e:
-        log.warning("get_pair pairs endpoint failed: %s", e)
+        log.debug("get_pair token lookup failed for %s/%s: %s", chain_id, pair_address, e)
 
-    # Try 2: token address endpoint (some results have token addr not pair addr)
+    # Try 2: pair address lookup
     if not result:
         try:
             r = requests.get(
-                f"{DEXSCREENER_BASE}/tokens/v1/{chain_id}/{pair_address}", timeout=8
+                f"{DEXSCREENER_BASE}/dex/pairs/{chain_id}/{pair_address}",
+                timeout=8,
             )
             r.raise_for_status()
-            pairs = r.json() or []
-            if isinstance(pairs, list) and pairs:
-                # Pick highest volume pair
-                best = sorted(pairs, key=lambda p: (p.get("volume") or {}).get("h24") or 0, reverse=True)[0]
-                result = _normalize_pair(best)
-        except Exception as e:
-            log.warning("get_pair token endpoint fallback failed: %s", e)
-
-    # Try 3: old endpoint as last resort
-    if not result:
-        try:
-            r = requests.get(
-                f"{DEXSCREENER_BASE}/latest/dex/pairs/{chain_id}/{pair_address}", timeout=8
-            )
-            r.raise_for_status()
-            pairs = r.json().get("pairs") or []
+            data = r.json()
+            pairs = data.get("pairs") or (data.get("pair") and [data["pair"]]) or []
             result = _normalize_pair(pairs[0]) if pairs else None
         except Exception as e:
-            log.error("get_pair(%r, %r) all endpoints failed: %s", chain_id, pair_address, e)
+            log.debug("get_pair pairs lookup failed for %s/%s: %s", chain_id, pair_address, e)
+
+    # Try 3: search fallback
+    if not result:
+        try:
+            results = search_tokens(pair_address, limit=3)
+            result = results[0] if results else None
+        except Exception as e:
+            log.error("get_pair all attempts failed for %s/%s: %s", chain_id, pair_address, e)
             return cached[1] if cached else None
 
     _pair_cache[cache_key] = (time.monotonic(), result)
