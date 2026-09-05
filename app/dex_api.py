@@ -133,18 +133,48 @@ def get_pair(chain_id: str, pair_address: str):
     if cached and (time.monotonic() - cached[0]) < _PAIR_TTL:
         return cached[1]
 
+    result = None
+
+    # Try 1: new pairs endpoint (v1)
     try:
         r = requests.get(
-            f"{DEXSCREENER_BASE}/latest/dex/pairs/{chain_id}/{pair_address}", timeout=8
+            f"{DEXSCREENER_BASE}/dex/pairs/{chain_id}/{pair_address}", timeout=8
         )
         r.raise_for_status()
-        pairs = r.json().get("pairs") or []
-        result = _normalize_pair(pairs[0]) if pairs else None
-    except Exception as e:  # noqa: BLE001 — deliberately broad: a malformed
-        # response (unexpected shape, missing keys) should degrade the same
-        # way a network failure does, not surface as a raw 500.
-        log.error("get_pair(%r, %r) failed: %s", chain_id, pair_address, e)
-        return cached[1] if cached else None
+        data = r.json()
+        pairs = data.get("pairs") or (data.get("pair") and [data["pair"]]) or []
+        if pairs:
+            result = _normalize_pair(pairs[0])
+    except Exception as e:
+        log.warning("get_pair pairs endpoint failed: %s", e)
+
+    # Try 2: token address endpoint (some results have token addr not pair addr)
+    if not result:
+        try:
+            r = requests.get(
+                f"{DEXSCREENER_BASE}/tokens/v1/{chain_id}/{pair_address}", timeout=8
+            )
+            r.raise_for_status()
+            pairs = r.json() or []
+            if isinstance(pairs, list) and pairs:
+                # Pick highest volume pair
+                best = sorted(pairs, key=lambda p: (p.get("volume") or {}).get("h24") or 0, reverse=True)[0]
+                result = _normalize_pair(best)
+        except Exception as e:
+            log.warning("get_pair token endpoint fallback failed: %s", e)
+
+    # Try 3: old endpoint as last resort
+    if not result:
+        try:
+            r = requests.get(
+                f"{DEXSCREENER_BASE}/latest/dex/pairs/{chain_id}/{pair_address}", timeout=8
+            )
+            r.raise_for_status()
+            pairs = r.json().get("pairs") or []
+            result = _normalize_pair(pairs[0]) if pairs else None
+        except Exception as e:
+            log.error("get_pair(%r, %r) all endpoints failed: %s", chain_id, pair_address, e)
+            return cached[1] if cached else None
 
     _pair_cache[cache_key] = (time.monotonic(), result)
     return result
