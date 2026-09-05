@@ -89,9 +89,8 @@ def get_trending(chain_id: str = None, limit: int = 300):
     # terms than a live-every-request approach could — a small pause
     # between calls still avoids bursting DexScreener's rate limit.
     search_terms = (
-        "pepe", "doge", "wif", "bonk", "shiba", "floki", "trump", "cat",
-        "inu", "moon", "elon", "frog", "baby", "safe", "wojak", "chad",
-        "based", "turbo", "ai", "meme", "dog", "pump", "rocket", "coin",
+        "pepe", "doge", "wif", "bonk", "shiba", "floki", "trump",
+        "inu", "moon", "frog", "baby", "wojak", "turbo", "dog",
     )
     for i, term in enumerate(search_terms):
         if i > 0:
@@ -101,14 +100,21 @@ def get_trending(chain_id: str = None, limit: int = 300):
     if chain_id:
         results = [p for p in results if p["chain_id"] == chain_id]
 
-    # De-duplicate by pair address, keep highest volume first.
-    seen = set()
+    # De-duplicate by base token address — same token on multiple pairs
+    # should only appear once (keep highest volume pair per token).
+    seen_token = set()
+    seen_pair  = set()
     deduped = []
     for p in sorted(results, key=lambda p: p.get("volume_24h") or 0, reverse=True):
-        key = p.get("pair_address")
-        if key and key in seen:
+        pair_key  = p.get("pair_address")
+        token_key = (p.get("chain_id"), p.get("base_address"))
+        if pair_key and pair_key in seen_pair:
             continue
-        seen.add(key)
+        if token_key[1] and token_key in seen_token:
+            continue
+        seen_pair.add(pair_key)
+        if token_key[1]:
+            seen_token.add(token_key)
         deduped.append(p)
 
     deduped = deduped[:limit]
@@ -133,48 +139,18 @@ def get_pair(chain_id: str, pair_address: str):
     if cached and (time.monotonic() - cached[0]) < _PAIR_TTL:
         return cached[1]
 
-    result = None
-
-    # Try 1: token address lookup (works for most tokens from search results)
     try:
         r = requests.get(
-            f"{DEXSCREENER_BASE}/tokens/v1/{chain_id}/{pair_address}",
-            timeout=8,
+            f"{DEXSCREENER_BASE}/latest/dex/pairs/{chain_id}/{pair_address}", timeout=8
         )
         r.raise_for_status()
-        pairs = r.json() or []
-        if isinstance(pairs, list) and pairs:
-            best = sorted(
-                pairs,
-                key=lambda p: (p.get("volume") or {}).get("h24") or 0,
-                reverse=True,
-            )[0]
-            result = _normalize_pair(best)
-    except Exception as e:
-        log.debug("get_pair token lookup failed for %s/%s: %s", chain_id, pair_address, e)
-
-    # Try 2: pair address lookup
-    if not result:
-        try:
-            r = requests.get(
-                f"{DEXSCREENER_BASE}/dex/pairs/{chain_id}/{pair_address}",
-                timeout=8,
-            )
-            r.raise_for_status()
-            data = r.json()
-            pairs = data.get("pairs") or (data.get("pair") and [data["pair"]]) or []
-            result = _normalize_pair(pairs[0]) if pairs else None
-        except Exception as e:
-            log.debug("get_pair pairs lookup failed for %s/%s: %s", chain_id, pair_address, e)
-
-    # Try 3: search fallback
-    if not result:
-        try:
-            results = search_tokens(pair_address, limit=3)
-            result = results[0] if results else None
-        except Exception as e:
-            log.error("get_pair all attempts failed for %s/%s: %s", chain_id, pair_address, e)
-            return cached[1] if cached else None
+        pairs = r.json().get("pairs") or []
+        result = _normalize_pair(pairs[0]) if pairs else None
+    except Exception as e:  # noqa: BLE001 — deliberately broad: a malformed
+        # response (unexpected shape, missing keys) should degrade the same
+        # way a network failure does, not surface as a raw 500.
+        log.error("get_pair(%r, %r) failed: %s", chain_id, pair_address, e)
+        return cached[1] if cached else None
 
     _pair_cache[cache_key] = (time.monotonic(), result)
     return result
