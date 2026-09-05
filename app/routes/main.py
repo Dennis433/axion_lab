@@ -199,13 +199,8 @@ def wallet_page():
 
 @main_bp.route("/token/<chain_id>/<pair_address>")
 def token_detail(chain_id, pair_address):
-    from app.dex_api import get_pair
-    token = get_pair(chain_id, pair_address)
-    return render_template("token_detail.html",
-                           token=token,
-                           chain_id=chain_id,
-                           pair_address=pair_address,
-                           chains=current_app.config["CHAINS"])
+    # Redirect to trade page — token detail page removed, all clicks go to trade
+    return redirect(url_for("main.trade_page") + f"?chain={chain_id}&token={pair_address}")
 
 
 @main_bp.route("/trade")
