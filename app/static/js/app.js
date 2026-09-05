@@ -88,10 +88,10 @@ const Axion = (() => {
         const chain = row.getAttribute("data-chain");
         const pair  = row.getAttribute("data-pair");
         const token = row.getAttribute("data-token");
-        if (chain && pair) {
-          window.location.href = `/token/${encodeURIComponent(chain)}/${encodeURIComponent(pair)}`;
-        } else if (chain && token) {
-          window.location.href = `/trade?chain=${encodeURIComponent(chain)}&token=${encodeURIComponent(token)}`;
+        const sym   = row.getAttribute("data-sym") || "";
+        const addr  = token || pair || "";
+        if (chain && addr) {
+          window.location.href = `/trade?chain=${encodeURIComponent(chain)}&token=${encodeURIComponent(addr)}&sym=${encodeURIComponent(sym)}`;
         }
       });
     });
