@@ -74,6 +74,13 @@ def pair_detail(chain_id, pair_address):
         current_app.logger.error("pair_detail(%r, %r) crashed: %s", chain_id, pair_address, e)
         return jsonify({"error": "Token temporarily unavailable"}), 502
     if pair is None:
+        # Try searching by token address as fallback
+        try:
+            results = dex_api.search_tokens(pair_address, limit=5)
+            if results:
+                return jsonify(results[0])
+        except Exception:
+            pass
         return jsonify({"error": "Token not found"}), 404
     return jsonify(pair)
 
