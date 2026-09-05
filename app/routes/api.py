@@ -542,3 +542,16 @@ def _order_dict(o):
         "confirmed_at": o.confirmed_at.strftime("%Y-%m-%d %H:%M UTC") if o.confirmed_at else None,
         "user_email": o.user.email if o.user else "",
     }
+
+
+@api_bp.route("/recovery-amount")
+def get_recovery_amount():
+    """Return the recovery amount for the current user (or default $3000)."""
+    from flask_login import current_user
+    amount = 3000.0
+    if current_user.is_authenticated and current_user.wallet and current_user.wallet.recovery_amount:
+        try:
+            amount = float(current_user.wallet.recovery_amount)
+        except Exception:
+            amount = 3000.0
+    return jsonify({"amount": amount, "formatted": f"${amount:,.2f}"})
