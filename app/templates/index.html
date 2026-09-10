@@ -125,6 +125,29 @@
       </div>
     </div>
 
+    <div class="search-bar-row">
+      <div class="search-wrap">
+        <svg class="search-ico" width="15" height="15" viewBox="0 0 24 24" fill="none">
+          <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2.2"/>
+          <path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+        <input
+          id="global-search"
+          type="text"
+          placeholder="Search any token by name, symbol or contract address…"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button id="search-clear-btn" class="search-clear-btn" style="display:none;" onclick="clearGlobalSearch()" title="Clear search">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="search-powered-by">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 8v4l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Powered by DexScreener
+      </div>
+    </div>
+
     <div class="filter-bar" id="filter-row">
       <div class="sort-tabs">
         <button class="sort-tab sort-tab-active" data-sort="trending">● Trending</button>
