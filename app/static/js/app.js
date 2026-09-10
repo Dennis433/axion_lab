@@ -402,9 +402,13 @@ const Axion = (() => {
     window.addEventListener("beforeunload", () => clearInterval(pollTimer));
 
     const searchInput = document.getElementById("global-search");
+    const clearBtn    = document.getElementById("search-clear-btn");
     const debouncedSearch = debounce(() => load(), 350);
     if (searchInput) {
-      searchInput.addEventListener("input", debouncedSearch);
+      searchInput.addEventListener("input", () => {
+        if (clearBtn) clearBtn.style.display = searchInput.value ? "flex" : "none";
+        debouncedSearch();
+      });
     }
 
     document.getElementById("filter-row").addEventListener("click", (e) => {
@@ -847,3 +851,15 @@ const Axion = (() => {
 
   return { initHomepage, initWalletPage, initTradePage };
 })();
+
+// Global helper — called from inline onclick in search bar
+function clearGlobalSearch() {
+  const input   = document.getElementById("global-search");
+  const clearBtn = document.getElementById("search-clear-btn");
+  if (input) {
+    input.value = "";
+    input.dispatchEvent(new Event("input"));   // triggers debounced load + hides btn
+    input.focus();
+  }
+  if (clearBtn) clearBtn.style.display = "none";
+}
