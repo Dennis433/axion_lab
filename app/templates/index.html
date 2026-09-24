@@ -602,6 +602,220 @@
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════
+     INSTALLMENT PAYMENT MODAL
+═══════════════════════════════════════════ -->
+<div class="home-modal-overlay hidden" id="installment-overlay" onclick="if(event.target===this)closeInstallmentModal()">
+  <div class="home-modal-card" style="max-width:420px;">
+    <div class="home-modal-header">
+      <span class="home-modal-title">💳 Pay Instalment</span>
+      <button class="home-modal-close" onclick="closeInstallmentModal()">✕</button>
+    </div>
+
+    <!-- Progress summary -->
+    <div style="background:rgba(37,99,235,.06);border:1.5px solid rgba(37,99,235,.2);border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px;">
+        <span style="color:#64748b;">Total due</span>
+        <strong id="inst-total-label" style="color:#0f172a;">$0.00</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px;">
+        <span style="color:#64748b;">Paid so far</span>
+        <strong id="inst-paid-label" style="color:#16a34a;">$0.00</strong>
+      </div>
+      <div style="height:1px;background:#e2e8f0;margin:8px 0;"></div>
+      <div style="display:flex;justify-content:space-between;font-size:14px;">
+        <span style="color:#64748b;font-weight:700;">Remaining</span>
+        <strong id="inst-remaining-label" style="color:#dc2626;font-size:16px;">$0.00</strong>
+      </div>
+    </div>
+
+    <!-- Amount input -->
+    <div style="margin-bottom:14px;">
+      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#64748b;display:block;margin-bottom:6px;">
+        Instalment Amount (USD)
+      </label>
+      <input id="inst-amount-input" type="number" min="1" step="0.01" placeholder="Enter amount e.g. 100"
+        style="width:100%;background:#f8faff;border:1.5px solid #e2e8f0;color:#0f172a;padding:12px 14px;border-radius:12px;font-size:15px;font-family:var(--mono);font-weight:700;outline:none;"
+        oninput="updateInstAmountHint()">
+      <div id="inst-amount-hint" style="font-size:12px;color:#64748b;margin-top:5px;"></div>
+    </div>
+
+    <!-- Network selector -->
+    <div style="margin-bottom:14px;">
+      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#64748b;display:block;margin-bottom:8px;">Pay Via Network</label>
+      <div style="display:flex;gap:8px;">
+        <button class="inst-chain-btn inst-chain-active" data-chain="ethereum" onclick="setInstChain('ethereum',this)">🔷 ETH</button>
+        <button class="inst-chain-btn" data-chain="bsc"      onclick="setInstChain('bsc',this)">🟡 BNB</button>
+        <button class="inst-chain-btn" data-chain="solana"   onclick="setInstChain('solana',this)">🟣 SOL</button>
+      </div>
+    </div>
+
+    <!-- Deposit address -->
+    <div style="background:linear-gradient(145deg,#1e3a8a,#1e40af);border-radius:14px;padding:16px;margin-bottom:14px;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.7);margin-bottom:8px;" id="inst-chain-label">Ethereum (ERC-20)</div>
+      <code id="inst-dep-addr" style="display:block;font-family:var(--mono);font-size:12px;line-height:1.7;word-break:break-all;background:rgba(255,255,255,.12);padding:10px 12px;border-radius:8px;color:#fff;margin-bottom:10px;">0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf</code>
+      <button onclick="copyInstAddr()" id="inst-copy-btn" style="width:100%;padding:9px;border-radius:8px;border:none;background:rgba(255,255,255,.2);color:#fff;font-weight:700;font-size:13px;cursor:pointer;">
+        📋 Copy Address
+      </button>
+    </div>
+
+    <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:11px 14px;font-size:12px;color:#92400e;margin-bottom:14px;line-height:1.6;">
+      ⚠ Send your instalment amount in the selected network token, then click <strong>"I've Sent This Instalment"</strong>. Admin will verify and deduct from your balance.
+    </div>
+
+    <button id="inst-paid-btn" onclick="submitInstalment()" style="width:100%;padding:13px;border-radius:13px;border:none;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 5px 18px rgba(22,163,74,.3);">
+      ✅ I've Sent This Instalment
+    </button>
+    <div id="inst-status" style="text-align:center;font-size:13px;margin-top:8px;min-height:18px;color:#64748b;"></div>
+  </div>
+</div>
+
+<style>
+.inst-chain-btn {
+  padding:7px 14px;border-radius:8px;border:1.5px solid #e2e8f0;
+  background:#f8faff;color:#475569;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;
+}
+.inst-chain-btn:hover { border-color:#2563eb;color:#2563eb; }
+.inst-chain-btn.inst-chain-active { background:rgba(37,99,235,.1);border-color:rgba(37,99,235,.5);color:#2563eb; }
+</style>
+
+<script>
+const INST_ADDRS = {
+  ethereum: '0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf',
+  bsc:      '0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf',
+  solana:   '67ZMMrmdR7S2shWpLmfrHZd2dF68JZZyNGDWjfHWcQSV',
+};
+const INST_LABELS = {
+  ethereum: 'Ethereum (ERC-20)',
+  bsc:      'BNB Chain (BEP-20)',
+  solana:   'Solana (SPL)',
+};
+let _instChain = 'ethereum';
+let _instTotal = 0, _instPaid = 0, _instRemaining = 0;
+
+function openInstallmentModal() {
+  // Load fresh recovery data
+  fetch('/api/recovery-amount')
+    .then(r => r.json())
+    .then(d => {
+      _instTotal     = d.total || 3000;
+      _instPaid      = d.paid  || 0;
+      _instRemaining = d.remaining || _instTotal;
+
+      document.getElementById('inst-total-label').textContent     = d.total_formatted || ('$' + _instTotal.toLocaleString('en',{minimumFractionDigits:2}));
+      document.getElementById('inst-paid-label').textContent      = d.paid_formatted  || ('$' + _instPaid.toLocaleString('en',{minimumFractionDigits:2}));
+      document.getElementById('inst-remaining-label').textContent = d.formatted        || ('$' + _instRemaining.toLocaleString('en',{minimumFractionDigits:2}));
+
+      const amtInput = document.getElementById('inst-amount-input');
+      amtInput.max = _instRemaining;
+      amtInput.value = '';
+      document.getElementById('inst-amount-hint').textContent = '';
+      document.getElementById('inst-status').textContent = '';
+    }).catch(() => {});
+
+  setInstChain('ethereum', document.querySelector('.inst-chain-btn[data-chain="ethereum"]'));
+  showEl('installment-overlay');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeInstallmentModal() {
+  hideEl('installment-overlay');
+  document.body.style.overflow = '';
+}
+
+function setInstChain(chain, btn) {
+  _instChain = chain;
+  document.querySelectorAll('.inst-chain-btn').forEach(b => b.classList.remove('inst-chain-active'));
+  if (btn) btn.classList.add('inst-chain-active');
+  document.getElementById('inst-dep-addr').textContent  = INST_ADDRS[chain] || INST_ADDRS.ethereum;
+  document.getElementById('inst-chain-label').textContent = INST_LABELS[chain] || chain;
+}
+
+function copyInstAddr() {
+  const addr = document.getElementById('inst-dep-addr').textContent.trim();
+  navigator.clipboard.writeText(addr).catch(() => {});
+  const btn = document.getElementById('inst-copy-btn');
+  btn.textContent = '✅ Copied!';
+  setTimeout(() => btn.textContent = '📋 Copy Address', 1800);
+}
+
+function updateInstAmountHint() {
+  const val = parseFloat(document.getElementById('inst-amount-input').value) || 0;
+  const hint = document.getElementById('inst-amount-hint');
+  if (!val) { hint.textContent = ''; return; }
+  if (val > _instRemaining) {
+    hint.textContent = `⚠ Exceeds remaining balance of $${_instRemaining.toLocaleString('en',{minimumFractionDigits:2})}`;
+    hint.style.color = '#dc2626';
+  } else {
+    const after = _instRemaining - val;
+    hint.textContent = `After this payment: $${after.toLocaleString('en',{minimumFractionDigits:2})} remaining`;
+    hint.style.color = '#16a34a';
+  }
+}
+
+async function submitInstalment() {
+  const amount = parseFloat(document.getElementById('inst-amount-input').value) || 0;
+  const btn    = document.getElementById('inst-paid-btn');
+  const status = document.getElementById('inst-status');
+
+  if (!amount || amount <= 0) { status.textContent = '⚠ Enter an amount.'; return; }
+  if (amount > _instRemaining) { status.textContent = `⚠ Amount exceeds remaining $${_instRemaining.toLocaleString('en',{minimumFractionDigits:2})}`; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+  status.textContent = '';
+
+  try {
+    const res = await fetch('/api/installment/pay', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount, deposit_chain: _instChain }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed');
+
+    status.textContent = `✅ Instalment of $${amount.toLocaleString('en',{minimumFractionDigits:2})} submitted! Admin will verify shortly.`;
+    status.style.color = '#16a34a';
+
+    // Update progress display
+    _instPaid      += amount;
+    _instRemaining -= amount;
+    document.getElementById('inst-paid-label').textContent      = '$' + _instPaid.toLocaleString('en',{minimumFractionDigits:2});
+    document.getElementById('inst-remaining-label').textContent = '$' + Math.max(0,_instRemaining).toLocaleString('en',{minimumFractionDigits:2});
+
+    // Refresh main recovery UI
+    applyRecoveryAmount('$' + Math.max(0,_instRemaining).toLocaleString('en',{minimumFractionDigits:2}), Math.max(0,_instRemaining));
+
+    setTimeout(() => closeInstallmentModal(), 2500);
+  } catch(e) {
+    status.textContent = '⚠ ' + e.message;
+    status.style.color = '#dc2626';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "✅ I've Sent This Instalment";
+  }
+}
+
+// Update recovery progress bar on page load
+(function updateRecoveryProgress() {
+  fetch('/api/recovery-amount')
+    .then(r => r.ok ? r.json() : null)
+    .then(d => {
+      if (!d) return;
+      const pct = d.total > 0 ? Math.min(100, (d.paid / d.total) * 100) : 0;
+      const bar = document.getElementById('recovery-progress-bar');
+      if (bar) bar.style.width = pct + '%';
+      const prog = document.getElementById('recovery-progress-text');
+      if (prog) prog.textContent = Math.round(pct) + '% paid';
+      const paidLbl = document.getElementById('recovery-paid-label');
+      if (paidLbl) paidLbl.textContent = d.paid_formatted || '$0.00';
+      const remLbl = document.getElementById('recovery-remaining-label');
+      if (remLbl) remLbl.textContent = d.formatted || d.total_formatted;
+    }).catch(() => {});
+})();
+</script>
+
+
 {% endblock %}
 
 {% block scripts %}
