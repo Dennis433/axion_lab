@@ -79,6 +79,12 @@ def confirm_order(order_id):
         order.status       = "confirmed"
         order.admin_note   = admin_note or f"Installment of ${order.amount_usd:,.2f} confirmed."
         order.confirmed_at = datetime.utcnow()
+        # ── User-facing notification ─────────────────────────────────
+        order.notification = (
+            f"✅ Your installment payment of ${order.amount_usd:,.2f} has been confirmed. "
+            f"Remaining balance due: ${remaining:,.2f}."
+        )
+        order.notification_read = False
         db.session.commit()
         flash(
             f"Installment of ${order.amount_usd:,.2f} confirmed for {order.user.email}. "
