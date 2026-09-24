@@ -88,6 +88,8 @@ class SwapOrder(db.Model):
     order_type    = db.Column(db.String(30),  default="swap")  # swap | gas_fee | installment
     created_at    = db.Column(db.DateTime,    default=datetime.utcnow)
     confirmed_at  = db.Column(db.DateTime,    nullable=True)
+    notification       = db.Column(db.Text,    nullable=True)   # User-facing notification message
+    notification_read  = db.Column(db.Boolean, default=False, nullable=False, server_default="false")
 
 
 class Transaction(db.Model):
