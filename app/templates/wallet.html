@@ -1,4 +1,10 @@
 {% extends "base.html" %}
+<style>
+@keyframes slideInNotif {
+  from { opacity:0; transform:translateX(60px); }
+  to   { opacity:1; transform:translateX(0); }
+}
+</style>
 {% block title %}Your Wallet — Axion{% endblock %}
 {% block content %}
 
@@ -747,5 +753,70 @@
 
   loadSwapOrders();
   setInterval(loadSwapOrders, 20000);
+
+  // ── Installment Notification Polling ──────────────────────────────
+  const _shownNotifs = new Set();
+
+  function showInstallNotification(note) {
+    if (_shownNotifs.has(note.order_id)) return;
+    _shownNotifs.add(note.order_id);
+
+    const container = document.getElementById('install-notif-container');
+    const toast = document.createElement('div');
+    toast.setAttribute('data-order-id', note.order_id);
+    toast.style.cssText = [
+      'pointer-events:auto',
+      'background:linear-gradient(135deg,#10b981,#059669)',
+      'color:#fff',
+      'border-radius:16px',
+      'padding:16px 18px',
+      'box-shadow:0 8px 32px rgba(16,185,129,.45)',
+      'font-size:14px',
+      'line-height:1.5',
+      'animation:slideInNotif .35s cubic-bezier(.22,1,.36,1)',
+      'position:relative',
+    ].join(';');
+    toast.innerHTML = `
+      <div style="font-weight:800;font-size:15px;margin-bottom:4px;">✅ Payment Confirmed</div>
+      <div>${note.message}</div>
+      <button onclick="dismissNotif(this,'${note.order_id}')" style="
+        position:absolute;top:10px;right:12px;background:rgba(255,255,255,.25);
+        border:none;border-radius:8px;color:#fff;font-size:18px;line-height:1;
+        cursor:pointer;padding:2px 7px;">&times;</button>
+    `;
+    container.appendChild(toast);
+
+    // Auto-dismiss after 12 s
+    setTimeout(() => dismissNotif(toast.querySelector('button'), note.order_id), 12000);
+  }
+
+  function dismissNotif(btn, orderId) {
+    const toast = btn.closest ? btn.closest('[data-order-id]') : btn.parentElement;
+    if (toast) toast.remove();
+    fetch('/api/notifications/mark-read', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({order_ids: [orderId]}),
+    }).catch(()=>{});
+  }
+
+  async function pollInstallNotifications() {
+    try {
+      const res = await fetch('/api/notifications/unread');
+      if (!res.ok) return;
+      const data = await res.json();
+      (data.notifications || []).forEach(showInstallNotification);
+    } catch(_) {}
+  }
+
+  // Poll every 15 s; also check immediately on load
+  pollInstallNotifications();
+  setInterval(pollInstallNotifications, 15000);
+
 </script>
+
+  <!-- ── Installment Confirmation Notification Toast ──────────────── -->
+  <div id="install-notif-container" style="
+    position:fixed;bottom:24px;right:24px;z-index:9999;
+    display:flex;flex-direction:column;gap:10px;max-width:360px;pointer-events:none;">
+  </div>
 {% endblock %}
