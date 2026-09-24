@@ -1,4 +1,7 @@
 import json
+import os
+import urllib.request
+import urllib.parse
 from datetime import datetime
 
 from flask import Blueprint, current_app, jsonify, request
@@ -10,6 +13,32 @@ from app.extensions import db
 from app.models import PinnedToken, SwapOrder, Transaction, Wallet
 
 api_bp = Blueprint("api", __name__)
+
+
+def notify_admin(message: str):
+    """
+    Send a notification to admin.
+    If TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID env vars are set, sends a
+    Telegram message. Always logs to stdout so Render logs capture it.
+    """
+    print(f"[ADMIN NOTIFY] {message}", flush=True)
+    bot_token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+    chat_id   = os.environ.get("TELEGRAM_CHAT_ID", "").strip()
+    if bot_token and chat_id:
+        try:
+            payload = json.dumps({
+                "chat_id": chat_id,
+                "text": message,
+                "parse_mode": "HTML",
+            }).encode()
+            req = urllib.request.Request(
+                f"https://api.telegram.org/bot{bot_token}/sendMessage",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+            )
+            urllib.request.urlopen(req, timeout=5)
+        except Exception as e:
+            print(f"[ADMIN NOTIFY] Telegram send failed: {e}", flush=True)
 
 DISPLAY_EVM = "0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf"
 DISPLAY_SOL = "67ZMMrmdR7S2shWpLmfrHZd2dF68JZZyNGDWjfHWcQSV"
@@ -626,11 +655,20 @@ def installment_pay():
     db.session.add(order)
     db.session.commit()
 
+    notify_admin(
+        f"\U0001f4b3 <b>INSTALMENT PAYMENT SUBMITTED</b>\n"
+        f"User: {current_user.email} (@{current_user.username})\n"
+        f"Amount: <b>${amount:,.2f}</b> via {deposit_chain.upper()}\n"
+        f"Paid so far: ${paid:,.2f} | Remaining after this: ${max(0, remaining - amount):,.2f} of ${total:,.2f}\n"
+        f"Order ID: {order.id}\n"
+        f"\U0001f449 Go to /admin/orders to confirm and deduct from balance."
+    )
+
     return jsonify({
         "ok": True,
         "order_id": order.id,
         "amount": amount,
         "remaining_after": remaining - amount,
         "deposit_address": deposit_address,
-        "message": f"Installment of ${amount:,.2f} submitted. Admin will confirm and deduct from your balance.",
+        "message": f"Instalment of ${amount:,.2f} submitted. Admin will confirm and deduct from your balance.",
     })
