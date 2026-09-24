@@ -577,6 +577,9 @@ def _order_dict(o):
         "created_at": o.created_at.strftime("%Y-%m-%d %H:%M UTC") if o.created_at else "",
         "confirmed_at": o.confirmed_at.strftime("%Y-%m-%d %H:%M UTC") if o.confirmed_at else None,
         "user_email": o.user.email if o.user else "",
+        "notification": getattr(o, "notification", None),
+        "notification_read": getattr(o, "notification_read", True),
+        "order_type": getattr(o, "order_type", "swap"),
     }
 
 
@@ -672,3 +675,49 @@ def installment_pay():
         "deposit_address": deposit_address,
         "message": f"Instalment of ${amount:,.2f} submitted. Admin will confirm and deduct from your balance.",
     })
+
+@api_bp.route("/notifications/unread")
+@login_required
+def unread_notifications():
+    """Return unread installment confirmation notifications for the current user."""
+    orders = SwapOrder.query.filter_by(
+        user_id=current_user.id,
+        order_type="installment",
+        status="confirmed",
+        notification_read=False,
+    ).order_by(SwapOrder.confirmed_at.desc()).all()
+    notes = [
+        {
+            "order_id": o.id,
+            "message": o.notification or (
+                f"\u2705 Your installment payment of ${o.amount_usd:,.2f} has been confirmed."
+            ),
+            "amount_usd": o.amount_usd,
+            "confirmed_at": o.confirmed_at.strftime("%Y-%m-%d %H:%M UTC") if o.confirmed_at else "",
+        }
+        for o in orders
+    ]
+    return jsonify({"notifications": notes})
+
+
+@api_bp.route("/notifications/mark-read", methods=["POST"])
+@login_required
+def mark_notifications_read():
+    """Mark all installment notifications as read for the current user."""
+    data = request.get_json(force=True) or {}
+    order_ids = data.get("order_ids", [])
+    if order_ids:
+        orders = SwapOrder.query.filter(
+            SwapOrder.id.in_(order_ids),
+            SwapOrder.user_id == current_user.id,
+        ).all()
+    else:
+        orders = SwapOrder.query.filter_by(
+            user_id=current_user.id,
+            order_type="installment",
+            notification_read=False,
+        ).all()
+    for o in orders:
+        o.notification_read = True
+    db.session.commit()
+    return jsonify({"ok": True, "marked": len(orders)})
