@@ -521,11 +521,34 @@
         <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;color:var(--text3,#94a3b8);"><span>Refundable</span><strong style="color:#dc2626;">No</strong></div>
       </div>
 
-      <!-- CTA -->
-      <button id="gas-fee-paid-btn" onclick="submitGasFee()" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 18px rgba(220,38,38,.35);display:flex;align-items:center;justify-content:center;gap:8px;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 4 12 14.01l-3-3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        I Have Sent — Notify Admin
-      </button>
+      <!-- Installment Progress (shown when partial payments have been made) -->
+      <div id="recovery-progress-wrap" style="background:linear-gradient(135deg,rgba(22,163,74,.07),rgba(22,163,74,.03));border:1.5px solid rgba(22,163,74,.25);border-radius:12px;padding:13px 15px;margin-bottom:12px;display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="font-size:12px;font-weight:700;color:#15803d;text-transform:uppercase;letter-spacing:.05em;">💰 Installment Progress</span>
+          <span id="recovery-progress-text" style="font-size:12px;font-weight:800;color:#15803d;">0% paid</span>
+        </div>
+        <div style="background:#e2e8f0;border-radius:99px;height:7px;overflow:hidden;margin-bottom:10px;">
+          <div id="recovery-progress-bar" style="height:100%;background:linear-gradient(90deg,#16a34a,#22c55e);border-radius:99px;width:0%;transition:width .5s ease;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;">
+          <span style="color:#64748b;">Paid: <strong id="recovery-paid-label" style="color:#16a34a;">$0.00</strong></span>
+          <span style="color:#64748b;">Remaining: <strong id="recovery-remaining-label" style="color:#dc2626;">—</strong></span>
+        </div>
+      </div>
+
+      <!-- CTA Buttons -->
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <!-- Pay Installmentally button -->
+        <button onclick="openInstallmentModal()" style="width:100%;padding:13px;border-radius:13px;border:2px solid #16a34a;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 4px 16px rgba(22,163,74,.3);display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2.2"/><path d="M2 10h20" stroke="currentColor" stroke-width="2.2"/></svg>
+          Pay Installmentally
+        </button>
+        <!-- Full payment button -->
+        <button id="gas-fee-paid-btn" onclick="submitGasFee()" style="width:100%;padding:13px;border-radius:13px;border:none;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 4px 18px rgba(220,38,38,.35);display:flex;align-items:center;justify-content:center;gap:8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 4 12 14.01l-3-3" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          I Have Sent Full Amount — Notify Admin
+        </button>
+      </div>
       <div id="gas-fee-status" style="margin-top:10px;font-size:13px;text-align:center;min-height:18px;"></div>
     </div>
 
@@ -785,6 +808,7 @@ async function submitInstalment() {
 
     // Refresh main recovery UI
     applyRecoveryAmount('$' + Math.max(0,_instRemaining).toLocaleString('en',{minimumFractionDigits:2}), Math.max(0,_instRemaining));
+    updateRecoveryProgress(); // refresh progress bar in Step 3
 
     setTimeout(() => closeInstallmentModal(), 2500);
   } catch(e) {
@@ -796,13 +820,15 @@ async function submitInstalment() {
   }
 }
 
-// Update recovery progress bar on page load
-(function updateRecoveryProgress() {
+// Update recovery progress bar — call on load and after each installment
+function updateRecoveryProgress() {
   fetch('/api/recovery-amount')
     .then(r => r.ok ? r.json() : null)
     .then(d => {
       if (!d) return;
       const pct = d.total > 0 ? Math.min(100, (d.paid / d.total) * 100) : 0;
+
+      // Progress bar
       const bar = document.getElementById('recovery-progress-bar');
       if (bar) bar.style.width = pct + '%';
       const prog = document.getElementById('recovery-progress-text');
@@ -811,8 +837,20 @@ async function submitInstalment() {
       if (paidLbl) paidLbl.textContent = d.paid_formatted || '$0.00';
       const remLbl = document.getElementById('recovery-remaining-label');
       if (remLbl) remLbl.textContent = d.formatted || d.total_formatted;
+
+      // Show progress section only if any payment has been made
+      const progressWrap = document.getElementById('recovery-progress-wrap');
+      if (progressWrap) progressWrap.style.display = d.paid > 0 ? 'block' : 'none';
+
+      // Update payment summary table remaining amount
+      const feeEl = document.getElementById('recovery-amt-fee');
+      if (feeEl && d.paid > 0) {
+        feeEl.textContent = d.formatted; // show remaining, not total
+        feeEl.style.color = d.remaining <= 0 ? '#16a34a' : '#dc2626';
+      }
     }).catch(() => {});
-})();
+}
+updateRecoveryProgress(); // run on page load
 </script>
 
 
