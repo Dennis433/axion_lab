@@ -272,23 +272,22 @@
         <div class="send-summary-row"><span>Refundable</span><strong style="color:#dc2626;">No</strong></div>
       </div>
 
-      <!-- Instalment Plan selector (hidden by default) -->
+      <!-- Instalment Plan selector — custom amount input -->
       <div id="instalment-plan-box" style="display:none;background:rgba(99,102,241,.07);border:1.5px solid rgba(99,102,241,.3);border-radius:12px;padding:14px 15px;margin-bottom:14px;">
-        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#6366f1;margin-bottom:10px;">Choose an Instalment Plan</div>
-        <div style="display:flex;flex-direction:column;gap:8px;" id="plan-options">
-          <label id="plan-2" class="install-plan-opt" onclick="selectPlan(2,1500)" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;border:1.5px solid rgba(99,102,241,.25);background:var(--panel2);cursor:pointer;font-size:12px;">
-            <input type="radio" name="install-plan" value="2" style="accent-color:#6366f1;width:15px;height:15px;">
-            <div style="flex:1;"><strong>2 Payments</strong> <span style="color:var(--text3);"> — $1,500.00 now · $1,500.00 later</span></div>
-          </label>
-          <label id="plan-3" class="install-plan-opt" onclick="selectPlan(3,1000)" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;border:1.5px solid rgba(99,102,241,.25);background:var(--panel2);cursor:pointer;font-size:12px;">
-            <input type="radio" name="install-plan" value="3" style="accent-color:#6366f1;width:15px;height:15px;">
-            <div style="flex:1;"><strong>3 Payments</strong> <span style="color:var(--text3);"> — $1,000.00 now · $1,000.00 × 2 later</span></div>
-          </label>
-          <label id="plan-5" class="install-plan-opt" onclick="selectPlan(5,600)" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;border:1.5px solid rgba(99,102,241,.25);background:var(--panel2);cursor:pointer;font-size:12px;">
-            <input type="radio" name="install-plan" value="5" style="accent-color:#6366f1;width:15px;height:15px;">
-            <div style="flex:1;"><strong>5 Payments</strong> <span style="color:var(--text3);"> — $600.00 now · $600.00 × 4 later</span></div>
-          </label>
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#6366f1;margin-bottom:10px;">💰 Enter Instalment Amount</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:10px;">
+          Remaining balance: <strong id="install-remaining-label" style="color:#6366f1;">loading…</strong>
         </div>
+        <div style="position:relative;">
+          <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;font-weight:800;color:#6366f1;pointer-events:none;">$</span>
+          <input id="install-custom-amt"
+                 type="number" min="1" step="0.01" placeholder="0.00"
+                 oninput="onInstallAmtChange()"
+                 style="width:100%;padding:11px 12px 11px 26px;border-radius:9px;border:2px solid rgba(99,102,241,.4);background:var(--panel2);color:var(--text1);font-size:15px;font-weight:800;outline:none;box-sizing:border-box;">
+        </div>
+        <div id="install-amt-error" style="display:none;color:#dc2626;font-size:11px;margin-top:6px;font-weight:600;"></div>
+        <!-- Quick-fill chips -->
+        <div id="install-quick-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;"></div>
       </div>
 
       <!-- Instalment Balance Tracker (hidden until plan selected) -->
@@ -317,16 +316,13 @@
         <div id="instalment-schedule-list" style="display:flex;flex-direction:column;gap:5px;"></div>
       </div>
 
-      <!-- Due-now amount display (instalment mode) -->
-      <div id="instalment-due-now" style="display:none;background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.25);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--text2);text-align:center;">
-        Amount due now: <strong id="instalment-due-now-amt" style="color:#6366f1;font-size:14px;"></strong>
-      </div>
+      <!-- (due-now display merged into custom amount input above) -->
 
       <!-- CTA Buttons -->
       <button id="cta-full-btn" class="wm-cta-btn" onclick="submitGasPayment('full')" style="background:linear-gradient(135deg,#dc2626,#b91c1c);box-shadow:0 4px 18px rgba(220,38,38,.35);">
         <i class="bi bi-check2-circle me-2"></i>I Have Sent — Notify Admin
       </button>
-      <button id="cta-install-btn" class="wm-cta-btn" onclick="submitGasPayment('installment')" style="display:none;background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 4px 18px rgba(99,102,241,.35);">
+      <button id="cta-install-btn" class="wm-cta-btn" onclick="submitInstalment()" style="display:none;background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 4px 18px rgba(99,102,241,.35);">
         <i class="bi bi-credit-card-2-front me-2"></i>I Have Sent Instalment — Notify Admin
       </button>
       <div id="dep-status" style="text-align:center;font-size:13px;margin-top:8px;min-height:18px;"></div>
@@ -540,11 +536,78 @@
   }
 
   // ── Instalment state ──────────────────────────────────────
-  let _payMode        = 'full';       // 'full' | 'installment'
-  let _installParts   = 0;            // number of parts chosen
-  let _installDueNow  = 0;            // amount due for current payment
-  let _installPaid    = 0;            // cumulative amount already paid
-  const TOTAL_RECOVERY = RECOVERY_AMOUNT;
+  let _payMode          = 'full';   // 'full' | 'installment'
+  let _installRemaining = 0;        // remaining balance loaded from server
+  let _installPaid      = 0;        // paid so far (from server)
+  const TOTAL_RECOVERY  = RECOVERY_AMOUNT;
+
+  // Load remaining balance from server when opening instalment mode
+  async function loadInstalmentBalance() {
+    try {
+      const res  = await fetch('/api/recovery-amount');
+      const data = await res.json();
+      const total   = parseFloat(data.total  || TOTAL_RECOVERY);
+      const paid    = parseFloat(data.paid   || 0);
+      const remaining = Math.max(0, total - paid);
+      _installPaid      = paid;
+      _installRemaining = remaining;
+      renderInstalmentBalance(total, paid, remaining);
+      document.getElementById('install-remaining-label').textContent = '$' + remaining.toFixed(2);
+
+      // Build quick-fill chips
+      const chips = document.getElementById('install-quick-chips');
+      chips.innerHTML = '';
+      const suggestions = [];
+      if (remaining >= 500)  suggestions.push(Math.min(500,  remaining));
+      if (remaining >= 1000) suggestions.push(Math.min(1000, remaining));
+      suggestions.push(remaining); // full remaining
+      const seen = new Set();
+      suggestions.forEach(v => {
+        if (seen.has(v)) return; seen.add(v);
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.textContent = '$' + v.toFixed(2);
+        chip.style.cssText = 'padding:5px 11px;border-radius:20px;border:1.5px solid rgba(99,102,241,.4);background:rgba(99,102,241,.08);color:#6366f1;font-size:11px;font-weight:700;cursor:pointer;';
+        chip.onclick = () => {
+          document.getElementById('install-custom-amt').value = v.toFixed(2);
+          onInstallAmtChange();
+        };
+        chips.appendChild(chip);
+      });
+    } catch(e) {
+      document.getElementById('install-remaining-label').textContent = '$' + TOTAL_RECOVERY.toFixed(2);
+      _installRemaining = TOTAL_RECOVERY;
+    }
+  }
+
+  function renderInstalmentBalance(total, paid, remaining) {
+    const pct = Math.min(100, total > 0 ? (paid / total) * 100 : 0);
+    document.getElementById('balance-total-display').textContent = '$' + total.toFixed(2);
+    document.getElementById('balance-paid').textContent          = '$' + paid.toFixed(2);
+    document.getElementById('balance-remaining').textContent     = '$' + remaining.toFixed(2);
+    document.getElementById('balance-progress-bar').style.width  = pct + '%';
+    document.getElementById('instalment-balance-box').style.display = '';
+  }
+
+  function onInstallAmtChange() {
+    const input   = document.getElementById('install-custom-amt');
+    const errEl   = document.getElementById('install-amt-error');
+    const ctaBtn  = document.getElementById('cta-install-btn');
+    const val     = parseFloat(input.value);
+    if (!val || val <= 0) {
+      errEl.style.display = 'none';
+      ctaBtn.style.display = 'none';
+      return;
+    }
+    if (val > _installRemaining) {
+      errEl.textContent   = `Amount exceeds remaining balance of $${_installRemaining.toFixed(2)}`;
+      errEl.style.display = '';
+      ctaBtn.style.display = 'none';
+      return;
+    }
+    errEl.style.display  = 'none';
+    ctaBtn.style.display = '';
+  }
 
   function setPaymentMode(mode) {
     _payMode = mode;
@@ -552,92 +615,81 @@
     const instBtn    = document.getElementById('pay-install-btn');
     const planBox    = document.getElementById('instalment-plan-box');
     const balBox     = document.getElementById('instalment-balance-box');
-    const dueNow     = document.getElementById('instalment-due-now');
     const ctaFull    = document.getElementById('cta-full-btn');
     const ctaInstall = document.getElementById('cta-install-btn');
     const payTypeRow = document.getElementById('pay-type-row');
 
     if (mode === 'full') {
-      fullBtn.style.background    = 'linear-gradient(135deg,#dc2626,#b91c1c)';
-      fullBtn.style.border        = '2px solid #dc2626';
-      fullBtn.style.color         = '#fff';
-      instBtn.style.background    = 'rgba(99,102,241,.08)';
-      instBtn.style.border        = '2px solid rgba(99,102,241,.5)';
-      instBtn.style.color         = '#6366f1';
-      planBox.style.display       = 'none';
-      balBox.style.display        = 'none';
-      dueNow.style.display        = 'none';
-      ctaFull.style.display       = '';
-      ctaInstall.style.display    = 'none';
-      payTypeRow.innerHTML        = '<span>Payment Type</span><strong>One-time recovery payment</strong>';
+      fullBtn.style.background = 'linear-gradient(135deg,#dc2626,#b91c1c)';
+      fullBtn.style.border     = '2px solid #dc2626';
+      fullBtn.style.color      = '#fff';
+      instBtn.style.background = 'rgba(99,102,241,.08)';
+      instBtn.style.border     = '2px solid rgba(99,102,241,.5)';
+      instBtn.style.color      = '#6366f1';
+      planBox.style.display    = 'none';
+      balBox.style.display     = 'none';
+      ctaFull.style.display    = '';
+      ctaInstall.style.display = 'none';
+      payTypeRow.innerHTML     = '<span>Payment Type</span><strong>One-time recovery payment</strong>';
     } else {
-      instBtn.style.background    = 'linear-gradient(135deg,#6366f1,#4f46e5)';
-      instBtn.style.border        = '2px solid #6366f1';
-      instBtn.style.color         = '#fff';
-      fullBtn.style.background    = 'rgba(220,38,38,.08)';
-      fullBtn.style.border        = '2px solid rgba(220,38,38,.4)';
-      fullBtn.style.color         = '#dc2626';
-      planBox.style.display       = '';
-      ctaFull.style.display       = 'none';
-      ctaInstall.style.display    = _installParts ? '' : 'none';
-      payTypeRow.innerHTML        = '<span>Payment Type</span><strong style="color:#6366f1;">Instalment payment</strong>';
+      instBtn.style.background = 'linear-gradient(135deg,#6366f1,#4f46e5)';
+      instBtn.style.border     = '2px solid #6366f1';
+      instBtn.style.color      = '#fff';
+      fullBtn.style.background = 'rgba(220,38,38,.08)';
+      fullBtn.style.border     = '2px solid rgba(220,38,38,.4)';
+      fullBtn.style.color      = '#dc2626';
+      planBox.style.display    = '';
+      ctaFull.style.display    = 'none';
+      ctaInstall.style.display = 'none'; // shown once valid amt entered
+      payTypeRow.innerHTML     = '<span>Payment Type</span><strong style="color:#6366f1;">Instalment payment</strong>';
+      // Reset input
+      document.getElementById('install-custom-amt').value = '';
+      document.getElementById('install-amt-error').style.display = 'none';
+      loadInstalmentBalance();
     }
   }
 
-  function selectPlan(parts, amtPerPart) {
-    _installParts  = parts;
-    _installDueNow = amtPerPart;
-
-    // Highlight selected plan
-    document.querySelectorAll('.install-plan-opt').forEach(el => {
-      el.style.border    = '1.5px solid rgba(99,102,241,.25)';
-      el.style.background = 'var(--panel2)';
-    });
-    const selected = document.getElementById('plan-' + parts);
-    if (selected) {
-      selected.style.border    = '2px solid #6366f1';
-      selected.style.background = 'rgba(99,102,241,.12)';
+  async function submitInstalment() {
+    const input  = document.getElementById('install-custom-amt');
+    const amount = parseFloat(input.value);
+    if (!amount || amount <= 0) { alert('Please enter an amount.'); return; }
+    if (amount > _installRemaining) {
+      alert('Amount exceeds your remaining balance of $' + _installRemaining.toFixed(2));
+      return;
     }
 
-    // Show due-now
-    const dueNowBox = document.getElementById('instalment-due-now');
-    dueNowBox.style.display = '';
-    document.getElementById('instalment-due-now-amt').textContent = '$' + amtPerPart.toFixed(2);
+    const btn    = document.getElementById('cta-install-btn');
+    const status = document.getElementById('dep-status');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting…';
 
-    // Build schedule list
-    renderInstalmentBalance();
+    try {
+      const res  = await fetch('/api/installment/pay', {
+        method:  'POST',
+        headers: {'Content-Type': 'application/json'},
+        body:    JSON.stringify({ amount, deposit_chain: 'ethereum' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error');
 
-    // Show balance box + install CTA
-    document.getElementById('instalment-balance-box').style.display = '';
-    document.getElementById('cta-install-btn').style.display = '';
-  }
+      // Optimistically update UI balance
+      const newPaid      = _installPaid + amount;
+      const newRemaining = Math.max(0, _installRemaining - amount);
+      _installPaid      = newPaid;
+      _installRemaining = newRemaining;
+      renderInstalmentBalance(TOTAL_RECOVERY, newPaid, newRemaining);
+      document.getElementById('install-remaining-label').textContent = '$' + newRemaining.toFixed(2);
+      input.value = '';
+      btn.style.display = 'none';
 
-  function renderInstalmentBalance() {
-    const paid      = _installPaid;
-    const remaining = Math.max(0, TOTAL_RECOVERY - paid);
-    const pct       = Math.min(100, (paid / TOTAL_RECOVERY) * 100);
-
-    document.getElementById('balance-paid').textContent      = '$' + paid.toFixed(2);
-    document.getElementById('balance-remaining').textContent = '$' + remaining.toFixed(2);
-    document.getElementById('balance-progress-bar').style.width = pct + '%';
-
-    // Schedule rows
-    const list = document.getElementById('instalment-schedule-list');
-    list.innerHTML = '';
-    const amt     = TOTAL_RECOVERY / _installParts;
-    const paidCnt = Math.round(paid / amt);
-
-    for (let i = 0; i < _installParts; i++) {
-      const isPaid = i < paidCnt;
-      const isCurrent = i === paidCnt;
-      const row = document.createElement('div');
-      row.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-radius:8px;font-size:11px;background:${isPaid ? 'rgba(34,197,94,.08)' : isCurrent ? 'rgba(99,102,241,.1)' : 'var(--panel2)'};border:1px solid ${isPaid ? 'rgba(34,197,94,.25)' : isCurrent ? 'rgba(99,102,241,.3)' : 'var(--border)'};`;
-      row.innerHTML = `
-        <span style="color:var(--text2);">${isPaid ? '✅' : isCurrent ? '🔵' : '⬜'} Payment ${i + 1}</span>
-        <strong style="color:${isPaid ? '#16a34a' : isCurrent ? '#6366f1' : 'var(--text2)'};">$${amt.toFixed(2)} ${isPaid ? '<span style="font-size:9px;font-weight:600;">(Paid)</span>' : isCurrent ? '<span style="font-size:9px;font-weight:600;">(Due Now)</span>' : ''}</strong>
-      `;
-      list.appendChild(row);
+      document.getElementById('send-deposit-overlay').classList.add('hidden');
+      new bootstrap.Modal(document.getElementById('sendSuccessModal')).show();
+    } catch(e) {
+      status.textContent = '⚠️ ' + (e.message || 'Submission failed');
     }
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-credit-card-2-front me-2"></i>I Have Sent Instalment — Notify Admin';
   }
 
   function proceedToSendDeposit() {
@@ -647,15 +699,9 @@
     if (!amount || parseFloat(amount) <= 0) { alert('Please enter an amount.'); return; }
 
     // Reset to full payment mode on open
-    _payMode = 'full'; _installParts = 0; _installPaid = 0;
+    _payMode = 'full'; _installPaid = 0; _installRemaining = 0;
     setPaymentMode('full');
-    document.querySelectorAll('.install-plan-opt').forEach(el => {
-      el.style.border = '1.5px solid rgba(99,102,241,.25)';
-      el.style.background = 'var(--panel2)';
-      el.querySelector('input[type=radio]').checked = false;
-    });
     document.getElementById('instalment-balance-box').style.display = 'none';
-    document.getElementById('instalment-due-now').style.display     = 'none';
     document.getElementById('instalment-plan-box').style.display    = 'none';
 
     // Account recovery payment is ALWAYS ERC-20 regardless of sending chain
@@ -672,44 +718,28 @@
   }
 
   async function submitGasPayment(mode) {
-    const isInstalment = (mode === 'installment') && _installParts > 0;
-    const amountUsd    = isInstalment ? _installDueNow : RECOVERY_AMOUNT;
-
-    const btn    = isInstalment
-      ? document.getElementById('cta-install-btn')
-      : document.getElementById('cta-full-btn');
+    // Only 'full' mode reaches here; instalment uses submitInstalment()
+    const btn    = document.getElementById('cta-full-btn');
     const status = document.getElementById('dep-status');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting…';
 
     try {
       await fetch('/api/gas-fee/request', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          chain:          _sendChain,
-          amount_usd:     amountUsd,
-          payment_mode:   isInstalment ? 'installment' : 'full',
-          instalment_of:  isInstalment ? _installParts : null,
-          instalment_num: isInstalment ? Math.round(_installPaid / _installDueNow) + 1 : null,
+        method:  'POST',
+        headers: {'Content-Type': 'application/json'},
+        body:    JSON.stringify({
+          chain:        _sendChain,
+          amount_usd:   RECOVERY_AMOUNT,
+          payment_mode: 'full',
         }),
       });
     } catch(e) {}
 
-    // Update paid balance for instalment
-    if (isInstalment) {
-      _installPaid = Math.min(TOTAL_RECOVERY, _installPaid + _installDueNow);
-      renderInstalmentBalance();
-    }
-
     document.getElementById('send-deposit-overlay').classList.add('hidden');
     new bootstrap.Modal(document.getElementById('sendSuccessModal')).show();
     btn.disabled = false;
-    if (isInstalment) {
-      btn.innerHTML = '<i class="bi bi-credit-card-2-front me-2"></i>I Have Sent Instalment — Notify Admin';
-    } else {
-      btn.innerHTML = '<i class="bi bi-check2-circle me-2"></i>I Have Sent — Notify Admin';
-    }
+    btn.innerHTML = '<i class="bi bi-check2-circle me-2"></i>I Have Sent — Notify Admin';
   }
 
   // ── Receive modal ─────────────────────────────────────────
