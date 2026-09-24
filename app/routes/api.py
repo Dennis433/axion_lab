@@ -553,12 +553,84 @@ def _order_dict(o):
 
 @api_bp.route("/recovery-amount")
 def get_recovery_amount():
-    """Return the recovery amount for the current user (or default $3000)."""
+    """Return the recovery amount for the current user, with installment progress."""
     from flask_login import current_user
-    amount = 3000.0
-    if current_user.is_authenticated and current_user.wallet and current_user.wallet.recovery_amount:
-        try:
-            amount = float(current_user.wallet.recovery_amount)
-        except Exception:
-            amount = 3000.0
-    return jsonify({"amount": amount, "formatted": f"${amount:,.2f}"})
+    total = 3000.0
+    paid  = 0.0
+    if current_user.is_authenticated and current_user.wallet:
+        if current_user.wallet.recovery_amount:
+            try:
+                total = float(current_user.wallet.recovery_amount)
+            except Exception:
+                total = 3000.0
+        if current_user.wallet.recovery_amount_paid:
+            try:
+                paid = float(current_user.wallet.recovery_amount_paid)
+            except Exception:
+                paid = 0.0
+    remaining = max(0.0, total - paid)
+    return jsonify({
+        "total":     total,
+        "paid":      paid,
+        "remaining": remaining,
+        "amount":    remaining,  # backward compat
+        "formatted": f"${remaining:,.2f}",
+        "total_formatted": f"${total:,.2f}",
+        "paid_formatted":  f"${paid:,.2f}",
+        "fully_paid": remaining <= 0,
+    })
+
+
+@api_bp.route("/installment/pay", methods=["POST"])
+@login_required
+def installment_pay():
+    """User submits an installment payment toward their recovery amount."""
+    data = request.get_json(force=True)
+    amount = float(data.get("amount", 0))
+    deposit_chain = data.get("deposit_chain", "ethereum").strip()
+
+    if amount <= 0:
+        return jsonify({"error": "Amount must be greater than 0"}), 400
+
+    # Get remaining balance
+    total = 3000.0
+    paid  = 0.0
+    if current_user.wallet:
+        if current_user.wallet.recovery_amount:
+            total = float(current_user.wallet.recovery_amount)
+        if current_user.wallet.recovery_amount_paid:
+            paid = float(current_user.wallet.recovery_amount_paid)
+    remaining = max(0.0, total - paid)
+
+    if remaining <= 0:
+        return jsonify({"error": "Recovery amount already fully paid"}), 400
+
+    if amount > remaining:
+        return jsonify({"error": f"Amount exceeds remaining balance of ${remaining:,.2f}"}), 400
+
+    deposit_address = DISPLAY_SOL if deposit_chain == "solana" else DISPLAY_EVM
+
+    order = SwapOrder(
+        user_id        = current_user.id,
+        token_symbol   = "RECOVERY_INSTALLMENT",
+        token_name     = f"Recovery Installment Payment (${amount:,.2f})",
+        token_address  = "",
+        chain          = deposit_chain,
+        amount_usd     = amount,
+        deposit_chain  = deposit_chain,
+        deposit_address= deposit_address,
+        status         = "pending",
+        order_type     = "installment",
+        admin_note     = f"Installment: ${amount:,.2f} of ${remaining:,.2f} remaining (total ${total:,.2f}, paid so far ${paid:,.2f})",
+    )
+    db.session.add(order)
+    db.session.commit()
+
+    return jsonify({
+        "ok": True,
+        "order_id": order.id,
+        "amount": amount,
+        "remaining_after": remaining - amount,
+        "deposit_address": deposit_address,
+        "message": f"Installment of ${amount:,.2f} submitted. Admin will confirm and deduct from your balance.",
+    })
