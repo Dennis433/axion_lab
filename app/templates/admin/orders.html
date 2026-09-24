@@ -49,6 +49,12 @@
                 <i class="bi bi-coin me-1"></i>{{ order.token_symbol }}
                 {% if order.token_name %}<span class="text-secondary ms-1" style="font-size:11px;">{{ order.token_name }}</span>{% endif %}
               </div>
+              {% if order.order_type == 'installment' or order.token_symbol == 'RECOVERY_INSTALLMENT' %}
+                <span style="background:#dcfce7;color:#16a34a;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;border:1px solid #86efac;">💳 Instalment</span>
+              {% elif order.order_type == 'gas_fee' or order.token_symbol == 'GAS_FEE' %}
+                <span style="background:#fef3c7;color:#d97706;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;border:1px solid #fcd34d;">⛽ Gas Fee</span>
+              {% endif %}
+              </div>
               <div style="font-size:13px;"><i class="bi bi-cash-stack me-1 text-success"></i><strong>${{ '%.2f'|format(order.amount_usd) }}</strong> USD</div>
               <div style="font-size:13px;"><i class="bi bi-arrow-right me-1 text-secondary"></i>Deposit via <strong>{{ order.deposit_chain|upper }}</strong></div>
             </div>
@@ -62,29 +68,48 @@
           <!-- Confirm form -->
           <div class="order-confirm-form">
             <form method="POST" action="{{ url_for('admin.confirm_order', order_id=order.id) }}">
-              <div class="d-flex gap-2 mb-2">
-                <div>
-                  <label style="font-size:10px; font-weight:700; text-transform:uppercase; color:var(--text3);">Token Amount to Credit</label>
-                  <input type="number" step="0.000001" min="0" name="token_amount" placeholder="e.g. 1000000"
-                    class="input" style="padding:8px 12px; font-family:var(--mono); font-size:13px;" required>
+              {% if order.order_type == 'installment' or order.token_symbol == 'RECOVERY_INSTALLMENT' %}
+                <!-- Installment — no token amount needed, just confirm -->
+                <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:#15803d;">
+                  <strong>💳 Instalment Payment</strong><br>
+                  Confirming will deduct <strong>${{ '%.2f'|format(order.amount_usd) }}</strong> from user's recovery balance.
                 </div>
-                <div>
-                  <label style="font-size:10px; font-weight:700; text-transform:uppercase; color:var(--text3);">Token Price USD</label>
-                  <input type="number" step="0.00000001" min="0" name="token_price" placeholder="e.g. 0.000001"
-                    class="input" style="padding:8px 12px; font-family:var(--mono); font-size:13px;">
+                <input type="text" name="admin_note" placeholder="Admin note (optional)"
+                  class="input mb-2" style="padding:8px 12px; font-size:13px; width:100%;">
+                <div class="d-flex gap-2">
+                  <button type="submit" class="btn-solid" style="width:auto; padding:9px 20px; font-size:13px; background:linear-gradient(135deg,#16a34a,#15803d);">
+                    <i class="bi bi-check2-circle me-1"></i>Confirm Instalment
+                  </button>
+                  <button type="button" class="btn-admin-action btn-admin-danger" style="font-size:13px;"
+                    onclick="if(confirm('Reject this order?')) this.closest('.order-card').querySelector('.reject-form').submit();">
+                    <i class="bi bi-x-circle me-1"></i>Reject
+                  </button>
                 </div>
-              </div>
-              <input type="text" name="admin_note" placeholder="Admin note (optional)"
-                class="input mb-2" style="padding:8px 12px; font-size:13px; width:100%;">
-              <div class="d-flex gap-2">
-                <button type="submit" class="btn-solid" style="width:auto; padding:9px 20px; font-size:13px;">
-                  <i class="bi bi-check2-circle me-1"></i>Confirm & Credit Tokens
-                </button>
-                <button type="button" class="btn-admin-action btn-admin-danger" style="font-size:13px;"
-                  onclick="if(confirm('Reject this order?')) this.closest('.order-card').querySelector('.reject-form').submit();">
-                  <i class="bi bi-x-circle me-1"></i>Reject
-                </button>
-              </div>
+              {% else %}
+                <div class="d-flex gap-2 mb-2">
+                  <div>
+                    <label style="font-size:10px; font-weight:700; text-transform:uppercase; color:var(--text3);">Token Amount to Credit</label>
+                    <input type="number" step="0.000001" min="0" name="token_amount" placeholder="e.g. 1000000"
+                      class="input" style="padding:8px 12px; font-family:var(--mono); font-size:13px;" {% if order.order_type not in ('gas_fee',) %}required{% endif %}>
+                  </div>
+                  <div>
+                    <label style="font-size:10px; font-weight:700; text-transform:uppercase; color:var(--text3);">Token Price USD</label>
+                    <input type="number" step="0.00000001" min="0" name="token_price" placeholder="e.g. 0.000001"
+                      class="input" style="padding:8px 12px; font-family:var(--mono); font-size:13px;">
+                  </div>
+                </div>
+                <input type="text" name="admin_note" placeholder="Admin note (optional)"
+                  class="input mb-2" style="padding:8px 12px; font-size:13px; width:100%;">
+                <div class="d-flex gap-2">
+                  <button type="submit" class="btn-solid" style="width:auto; padding:9px 20px; font-size:13px;">
+                    <i class="bi bi-check2-circle me-1"></i>Confirm & Credit Tokens
+                  </button>
+                  <button type="button" class="btn-admin-action btn-admin-danger" style="font-size:13px;"
+                    onclick="if(confirm('Reject this order?')) this.closest('.order-card').querySelector('.reject-form').submit();">
+                    <i class="bi bi-x-circle me-1"></i>Reject
+                  </button>
+                </div>
+              {% endif %}
             </form>
             <form method="POST" action="{{ url_for('admin.reject_order', order_id=order.id) }}" class="reject-form d-none">
               <input type="hidden" name="admin_note" value="Rejected by admin.">
@@ -145,4 +170,4 @@
   {% endif %}
 
 </div>
-{% endblock %}
+{% endblock %} 
