@@ -209,6 +209,16 @@
     </div>
     <div class="wallet-modal-body">
 
+      <!-- Payment Mode Toggle — at top so always visible on mobile -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <button id="pay-full-btn" onclick="setPaymentMode('full')" style="flex:1;padding:9px 0;border-radius:10px;border:2px solid #dc2626;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;font-size:12px;font-weight:800;cursor:pointer;transition:all .2s;">
+          &#x1F4B3; Pay in Full
+        </button>
+        <button id="pay-install-btn" onclick="setPaymentMode('installment')" style="flex:1;padding:9px 0;border-radius:10px;border:2px solid rgba(99,102,241,.5);background:rgba(99,102,241,.08);color:#6366f1;font-size:12px;font-weight:800;cursor:pointer;transition:all .2s;">
+          &#x1F4C5; Pay Instalment
+        </button>
+      </div>
+
       <!-- Header alert -->
       <div style="background:linear-gradient(135deg,rgba(220,38,38,.1),rgba(220,38,38,.05));border:1.5px solid rgba(220,38,38,.35);border-radius:14px;padding:14px 16px;margin-bottom:14px;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
@@ -253,15 +263,7 @@
         </button>
       </div>
 
-      <!-- Payment Mode Toggle -->
-      <div style="display:flex;gap:8px;margin-bottom:14px;">
-        <button id="pay-full-btn" onclick="setPaymentMode('full')" style="flex:1;padding:9px 0;border-radius:10px;border:2px solid #dc2626;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;font-size:12px;font-weight:800;cursor:pointer;transition:all .2s;">
-          💳 Pay in Full
-        </button>
-        <button id="pay-install-btn" onclick="setPaymentMode('installment')" style="flex:1;padding:9px 0;border-radius:10px;border:2px solid rgba(99,102,241,.5);background:rgba(99,102,241,.08);color:#6366f1;font-size:12px;font-weight:800;cursor:pointer;transition:all .2s;">
-          📅 Pay in Instalments
-        </button>
-      </div>
+      <!-- Payment Mode Toggle moved to top of modal body -->
 
       <!-- Payment summary table -->
       <div style="background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:12px 15px;margin-bottom:14px;" id="payment-summary-box">
