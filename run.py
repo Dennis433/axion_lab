@@ -31,6 +31,8 @@ try:
             conn.execute(text("ALTER TABLE wallets ADD COLUMN IF NOT EXISTS recovery_amount_paid FLOAT"))
             conn.execute(text("ALTER TABLE swap_orders ADD COLUMN IF NOT EXISTS admin_note TEXT"))
             conn.execute(text("ALTER TABLE swap_orders ADD COLUMN IF NOT EXISTS order_type VARCHAR(30) DEFAULT 'swap'"))
+            conn.execute(text("ALTER TABLE swap_orders ADD COLUMN IF NOT EXISTS notification TEXT"))
+            conn.execute(text("ALTER TABLE swap_orders ADD COLUMN IF NOT EXISTS notification_read BOOLEAN NOT NULL DEFAULT FALSE"))
             conn.commit()
             print("[startup] Column migrations applied.")
 except Exception as e:
