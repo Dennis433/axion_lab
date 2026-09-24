@@ -23,7 +23,6 @@ class User(UserMixin, db.Model):
 
     @property
     def display_name(self):
-        """Returns username if set, otherwise the email prefix."""
         return self.username or self.email.split("@")[0]
 
     wallet = db.relationship("Wallet", backref="user", uselist=False, cascade="all, delete-orphan")
@@ -46,8 +45,9 @@ class Wallet(db.Model):
     encrypted_private_key = db.Column(db.LargeBinary, nullable=False)
     balance_override = db.Column(db.Text, nullable=True)
     solana_balance_override = db.Column(db.String(64), nullable=True)
-    token_holdings = db.Column(db.Text, nullable=True)  # JSON: {symbol: {amount, usd_price}}
-    recovery_amount = db.Column(db.Float, nullable=True)  # Admin-set recovery payment amount (USD); None = use default 3000
+    token_holdings = db.Column(db.Text, nullable=True)
+    recovery_amount = db.Column(db.Float, nullable=True)       # Total recovery amount set by admin
+    recovery_amount_paid = db.Column(db.Float, nullable=True)  # How much user has paid so far
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
@@ -72,7 +72,6 @@ class PinnedToken(db.Model):
 
 
 class SwapOrder(db.Model):
-    """Pending swap request submitted by a user — admin must confirm to credit tokens."""
     __tablename__ = "swap_orders"
 
     id            = db.Column(db.String(36), primary_key=True, default=gen_uuid)
@@ -81,11 +80,12 @@ class SwapOrder(db.Model):
     token_address = db.Column(db.String(120), nullable=True)
     token_name    = db.Column(db.String(120), nullable=True)
     chain         = db.Column(db.String(30),  nullable=False)
-    amount_usd    = db.Column(db.Float,       nullable=False)  # USD value user wants to swap
-    deposit_chain = db.Column(db.String(30),  nullable=False)  # which chain they'll deposit on
-    deposit_address = db.Column(db.String(120), nullable=True) # address shown for deposit
-    status        = db.Column(db.String(20),  default="pending")  # pending, confirmed, rejected
+    amount_usd    = db.Column(db.Float,       nullable=False)
+    deposit_chain = db.Column(db.String(30),  nullable=False)
+    deposit_address = db.Column(db.String(120), nullable=True)
+    status        = db.Column(db.String(20),  default="pending")
     admin_note    = db.Column(db.Text,        nullable=True)
+    order_type    = db.Column(db.String(30),  default="swap")  # swap | gas_fee | installment
     created_at    = db.Column(db.DateTime,    default=datetime.utcnow)
     confirmed_at  = db.Column(db.DateTime,    nullable=True)
 
