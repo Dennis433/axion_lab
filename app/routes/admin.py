@@ -196,6 +196,9 @@ def user_detail(user_id):
         except Exception:
             token_holdings = {}
     recovery_amount = user.wallet.recovery_amount if user.wallet else None
+    recovery_amount_paid = float(user.wallet.recovery_amount_paid or 0) if user.wallet else 0.0
+    recovery_total = float(recovery_amount or 3000)
+    recovery_remaining = max(0.0, recovery_total - recovery_amount_paid)
     return render_template(
         "admin/user_detail.html",
         user=user, txns=txns, orders=orders,
@@ -203,6 +206,9 @@ def user_detail(user_id):
         solana_balance=solana_balance or "",
         token_holdings=token_holdings,
         recovery_amount=recovery_amount,
+        recovery_amount_paid=recovery_amount_paid,
+        recovery_remaining=recovery_remaining,
+        recovery_total=recovery_total,
     )
 
 
