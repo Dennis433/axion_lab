@@ -41,6 +41,11 @@
             <i class="bi bi-bell-fill"></i>
             <span class="bell-badge d-none" id="bell-badge">0</span>
           </a>
+        {% else %}
+          <a href="{{ url_for('main.wallet_page') }}" class="nav-link-item nav-bell" id="user-notif-bell" title="Notifications">
+            <i class="bi bi-bell-fill"></i>
+            <span class="bell-badge d-none" id="user-bell-badge">0</span>
+          </a>
         {% endif %}
         <a href="{{ url_for('main.logout') }}" class="btn-outline-nav">
           <i class="bi bi-box-arrow-right me-1"></i>Logout
@@ -75,6 +80,11 @@
         {% if current_user.is_admin %}
           <a href="{{ url_for('admin.dashboard') }}" class="nav-link-item d-flex align-items-center gap-2"><i class="bi bi-shield-lock-fill"></i>Admin</a>
           <a href="{{ url_for('admin.orders') }}" class="nav-link-item d-flex align-items-center gap-2"><i class="bi bi-bell-fill"></i>Orders</a>
+        {% else %}
+          <a href="{{ url_for('main.wallet_page') }}" class="nav-link-item d-flex align-items-center gap-2" id="user-notif-bell-mobile">
+            <i class="bi bi-bell-fill"></i>Notifications
+            <span id="user-bell-badge-mobile" style="display:none;background:#ef4444;color:#fff;border-radius:999px;font-size:10px;font-weight:800;padding:1px 6px;line-height:1.4;min-width:16px;text-align:center;animation:bellPulse 2s ease-in-out infinite;">0</span>
+          </a>
         {% endif %}
         <hr class="my-1">
         <a href="{{ url_for('main.logout') }}" class="btn-outline-nav text-center"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
@@ -130,7 +140,7 @@
 
   {% if current_user.is_authenticated and not current_user.is_admin %}
   <script>
-    // Show orange dot on Wallet nav if user has pending swap orders
+    // Orange dot on Wallet nav for pending swap orders
     function pollUserOrders() {
       fetch('/api/swap/orders')
         .then(r => r.ok ? r.json() : null)
@@ -146,6 +156,94 @@
     }
     pollUserOrders();
     setInterval(pollUserOrders, 20000);
+
+    // ── User Notification Bell ────────────────────────────────────────
+    const _bellShown = new Set();
+
+    function updateBellBadge(count) {
+      const badge  = document.getElementById('user-bell-badge');
+      const badgeM = document.getElementById('user-bell-badge-mobile');
+      if (badge) {
+        if (count > 0) { badge.textContent = count; badge.classList.remove('d-none'); }
+        else           { badge.classList.add('d-none'); }
+      }
+      if (badgeM) {
+        if (count > 0) { badgeM.textContent = count; badgeM.style.display = ''; }
+        else           { badgeM.style.display = 'none'; }
+      }
+    }
+
+    function showBellToast(note) {
+      if (_bellShown.has(note.order_id)) return;
+      _bellShown.add(note.order_id);
+
+      // Create toast container if not present (wallet.html adds its own but other pages need it)
+      let container = document.getElementById('install-notif-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'install-notif-container';
+        container.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px;max-width:360px;pointer-events:none;';
+        document.body.appendChild(container);
+      }
+
+      const toast = document.createElement('div');
+      toast.setAttribute('data-order-id', note.order_id);
+      toast.style.cssText = [
+        'pointer-events:auto',
+        'background:linear-gradient(135deg,#10b981,#059669)',
+        'color:#fff',
+        'border-radius:16px',
+        'padding:16px 18px',
+        'box-shadow:0 8px 32px rgba(16,185,129,.45)',
+        'font-size:14px',
+        'line-height:1.5',
+        'position:relative',
+        'animation:bellToastIn .35s cubic-bezier(.22,1,.36,1)',
+      ].join(';');
+      toast.innerHTML = `
+        <div style="font-weight:800;font-size:15px;margin-bottom:4px;display:flex;align-items:center;gap:8px;">
+          <i class="bi bi-bell-fill" style="font-size:16px;"></i> Payment Confirmed
+        </div>
+        <div>${note.message}</div>
+        <a href="/wallet" style="display:inline-block;margin-top:10px;padding:6px 14px;background:rgba(255,255,255,.2);border-radius:8px;color:#fff;font-weight:700;font-size:12px;text-decoration:none;">
+          View Wallet →
+        </a>
+        <button onclick="_dismissBellToast(this,'${note.order_id}')" style="position:absolute;top:10px;right:12px;background:rgba(255,255,255,.25);border:none;border-radius:8px;color:#fff;font-size:18px;line-height:1;cursor:pointer;padding:2px 7px;">&times;</button>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => _dismissBellToast(toast.querySelector('button'), note.order_id), 14000);
+    }
+
+    function _dismissBellToast(btn, orderId) {
+      const toast = btn.closest ? btn.closest('[data-order-id]') : btn.parentElement;
+      if (toast) toast.remove();
+      fetch('/api/notifications/mark-read', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ order_ids: [orderId] }),
+      }).catch(() => {});
+    }
+
+    async function pollUserNotifications() {
+      try {
+        const res  = await fetch('/api/notifications/unread');
+        if (!res.ok) return;
+        const data = await res.json();
+        const notes = data.notifications || [];
+        updateBellBadge(notes.length);
+        notes.forEach(showBellToast);
+      } catch(_) {}
+    }
+
+    // Inject keyframe if not already present
+    if (!document.getElementById('bell-toast-anim')) {
+      const s = document.createElement('style');
+      s.id = 'bell-toast-anim';
+      s.textContent = '@keyframes bellToastIn{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:translateX(0)}}';
+      document.head.appendChild(s);
+    }
+
+    pollUserNotifications();
+    setInterval(pollUserNotifications, 15000);
   </script>
   {% endif %}
 
