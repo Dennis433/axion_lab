@@ -62,26 +62,47 @@ def orders():
 @login_required
 @admin_required
 def confirm_order(order_id):
-    """Admin confirms a swap order and credits tokens to the user's wallet."""
+    """Admin confirms a swap/installment order."""
     order = SwapOrder.query.get_or_404(order_id)
+    admin_note = request.form.get("admin_note", "").strip()
+
+    # ── Installment payment ──────────────────────────────────────────
+    order_type = getattr(order, "order_type", "swap") or "swap"
+    if order_type == "installment" or order.token_symbol == "RECOVERY_INSTALLMENT":
+        wallet = order.user.wallet
+        if wallet:
+            paid_so_far = float(wallet.recovery_amount_paid or 0)
+            paid_so_far += float(order.amount_usd)
+            wallet.recovery_amount_paid = paid_so_far
+            total = float(wallet.recovery_amount or 3000)
+            remaining = max(0.0, total - paid_so_far)
+        order.status       = "confirmed"
+        order.admin_note   = admin_note or f"Installment of ${order.amount_usd:,.2f} confirmed."
+        order.confirmed_at = datetime.utcnow()
+        db.session.commit()
+        flash(
+            f"Installment of ${order.amount_usd:,.2f} confirmed for {order.user.email}. "
+            f"Remaining balance: ${remaining:,.2f}.",
+            "success"
+        )
+        return redirect(url_for("admin.orders"))
+
+    # ── Regular swap / gas fee ───────────────────────────────────────
     token_amount = request.form.get("token_amount", "").strip()
     token_price  = request.form.get("token_price", "").strip()
-    admin_note   = request.form.get("admin_note", "").strip()
 
-    if not token_amount:
+    if not token_amount and order_type not in ("gas_fee", "installment"):
         flash("Token amount is required to confirm.", "error")
         return redirect(url_for("admin.orders"))
 
-    # Credit token to user's wallet token_holdings
     wallet = order.user.wallet
-    if wallet:
+    if wallet and token_amount:
         holdings = {}
         if wallet.token_holdings:
             try:
                 holdings = json.loads(wallet.token_holdings)
             except Exception:
                 holdings = {}
-
         sym = order.token_symbol
         existing = holdings.get(sym, {"amount": 0, "usd_price": 0, "name": order.token_name or sym, "address": order.token_address or ""})
         existing["amount"] = float(existing.get("amount", 0)) + float(token_amount)
@@ -97,7 +118,10 @@ def confirm_order(order_id):
     order.confirmed_at = datetime.utcnow()
     db.session.commit()
 
-    flash(f"Order confirmed — {token_amount} {order.token_symbol} credited to {order.user.email}.", "success")
+    msg = f"Order confirmed for {order.user.email}."
+    if token_amount:
+        msg = f"Order confirmed — {token_amount} {order.token_symbol} credited to {order.user.email}."
+    flash(msg, "success")
     return redirect(url_for("admin.orders"))
 
 
