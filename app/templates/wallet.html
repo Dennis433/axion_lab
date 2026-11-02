@@ -201,6 +201,10 @@
           <span class="send-chain-icon">🟣</span>
           <div><div class="send-chain-name">Solana</div><div class="send-chain-sym">SOL</div></div>
         </button>
+        <button class="send-chain-btn" data-chain="bitcoin" data-sym="BTC" onclick="selectSendChain(this)">
+          <span class="send-chain-icon">🟠</span>
+          <div><div class="send-chain-name">Bitcoin</div><div class="send-chain-sym">BTC</div></div>
+        </button>
       </div>
 
       <!-- Recipient -->
@@ -535,6 +539,7 @@
     ethereum: EVM_ADDR, bsc: EVM_ADDR, polygon: EVM_ADDR,
     arbitrum: EVM_ADDR, base: EVM_ADDR, optimism: EVM_ADDR,
     solana: SOL_ADDR,
+    bitcoin: BTC_ADDR,
   };
   const DEP_LABELS = {
     ethereum:'Ethereum (ERC-20)', bsc:'BNB Chain (BEP-20)',
