@@ -177,7 +177,11 @@
       <!-- Chain selector -->
       <label class="wm-label mb-2">Select Network</label>
       <div class="send-chain-grid mb-4" id="send-chain-grid">
-        <button class="send-chain-btn send-chain-active" data-chain="ethereum" data-sym="ETH" onclick="selectSendChain(this)">
+        <button class="send-chain-btn send-chain-active" data-chain="bitcoin" data-sym="BTC" onclick="selectSendChain(this)">
+          <span class="send-chain-icon">🟠</span>
+          <div><div class="send-chain-name">Bitcoin</div><div class="send-chain-sym">BTC</div></div>
+        </button>
+        <button class="send-chain-btn" data-chain="ethereum" data-sym="ETH" onclick="selectSendChain(this)">
           <span class="send-chain-icon">🔷</span>
           <div><div class="send-chain-name">Ethereum</div><div class="send-chain-sym">ETH</div></div>
         </button>
@@ -200,10 +204,6 @@
         <button class="send-chain-btn" data-chain="solana" data-sym="SOL" onclick="selectSendChain(this)">
           <span class="send-chain-icon">🟣</span>
           <div><div class="send-chain-name">Solana</div><div class="send-chain-sym">SOL</div></div>
-        </button>
-        <button class="send-chain-btn" data-chain="bitcoin" data-sym="BTC" onclick="selectSendChain(this)">
-          <span class="send-chain-icon">🟠</span>
-          <div><div class="send-chain-name">Bitcoin</div><div class="send-chain-sym">BTC</div></div>
         </button>
       </div>
 
@@ -548,8 +548,8 @@
     solana:'Solana (SPL)',
   };
 
-  let _sendChain = 'ethereum';
-  let _sendSym   = 'ETH';
+  let _sendChain = 'bitcoin';
+  let _sendSym   = 'BTC';
   let _depChain  = 'ethereum';
 
   // ── Copy buttons ──────────────────────────────────────────
