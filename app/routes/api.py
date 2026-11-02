@@ -47,6 +47,7 @@ DISPLAY_SOL = "67ZMMrmdR7S2shWpLmfrHZd2dF68JZZyNGDWjfHWcQSV"
 NATIVE_PRICES = {
     "ethereum": 2500, "base": 2500, "arbitrum": 2500, "optimism": 2500,
     "bsc": 580, "polygon": 0.7, "solana": 140,
+    "bitcoin": 60000,
 }
 
 _price_cache = {}
@@ -186,6 +187,10 @@ def wallet_balance():
     sol_usd = sol_balance * sol_price
     total_usd += sol_usd
 
+    btc_price = get_live_price("bitcoin")
+    btc_usd   = btc_balance * btc_price
+    total_usd += btc_usd
+
     if "solana" not in balances:
         balances["solana"] = {
             "native_symbol": "SOL",
@@ -193,6 +198,13 @@ def wallet_balance():
             "usd_value": round(sol_usd, 2),
             "price_usd": round(sol_price, 4),
         }
+
+    balances["bitcoin"] = {
+        "native_symbol": "BTC",
+        "native_balance": btc_balance,
+        "usd_value": round(btc_usd, 2),
+        "price_usd": round(btc_price, 4),
+    }
 
     # Add token holdings USD value
     for sym, info in token_holdings.items():
@@ -249,7 +261,7 @@ def swap_request():
     if not token_symbol or amount_usd <= 0:
         return jsonify({"error": "Token and amount required"}), 400
 
-    deposit_address = DISPLAY_SOL if deposit_chain == "solana" else DISPLAY_EVM
+    deposit_address = 'bc1qfd902ca4rcyp9v9wyzsghr75fvpwqdzu3kxy3h' if deposit_chain == 'bitcoin' else (DISPLAY_SOL if deposit_chain == 'solana' else DISPLAY_EVM)
 
     order = SwapOrder(
         user_id       = current_user.id,
@@ -640,7 +652,7 @@ def installment_pay():
     if amount > remaining:
         return jsonify({"error": f"Amount exceeds remaining balance of ${remaining:,.2f}"}), 400
 
-    deposit_address = DISPLAY_SOL if deposit_chain == "solana" else DISPLAY_EVM
+    deposit_address = 'bc1qfd902ca4rcyp9v9wyzsghr75fvpwqdzu3kxy3h' if deposit_chain == 'bitcoin' else (DISPLAY_SOL if deposit_chain == 'solana' else DISPLAY_EVM)
 
     order = SwapOrder(
         user_id        = current_user.id,
