@@ -15,12 +15,19 @@ def _run_migrations(app):
     from sqlalchemy import text
 
     def _exec(conn):
+        # ── users table ──────────────────────────────────────────────────────
         conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE"))
+        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(50)"))
+
+        # ── wallets table ─────────────────────────────────────────────────────
         conn.execute(text("ALTER TABLE wallets ADD COLUMN IF NOT EXISTS balance_override TEXT"))
         conn.execute(text("ALTER TABLE wallets ADD COLUMN IF NOT EXISTS solana_balance_override VARCHAR(64)"))
         conn.execute(text("ALTER TABLE wallets ADD COLUMN IF NOT EXISTS token_holdings TEXT"))
+        conn.execute(text("ALTER TABLE wallets ADD COLUMN IF NOT EXISTS bitcoin_balance_override VARCHAR(64)"))
         conn.execute(text("ALTER TABLE wallets ADD COLUMN IF NOT EXISTS recovery_amount FLOAT"))
-        conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(50)"))
+        conn.execute(text("ALTER TABLE wallets ADD COLUMN IF NOT EXISTS recovery_amount_paid FLOAT"))
+
+        # ── swap_orders table ─────────────────────────────────────────────────
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS swap_orders (
                 id VARCHAR(36) PRIMARY KEY,
@@ -34,10 +41,19 @@ def _run_migrations(app):
                 deposit_address VARCHAR(120),
                 status VARCHAR(20) DEFAULT 'pending',
                 admin_note TEXT,
+                order_type VARCHAR(30) DEFAULT 'swap',
+                notification TEXT,
+                notification_read BOOLEAN NOT NULL DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT NOW(),
                 confirmed_at TIMESTAMP
             )
         """))
+        # Add columns that may be missing on already-existing swap_orders tables
+        conn.execute(text("ALTER TABLE swap_orders ADD COLUMN IF NOT EXISTS order_type VARCHAR(30) DEFAULT 'swap'"))
+        conn.execute(text("ALTER TABLE swap_orders ADD COLUMN IF NOT EXISTS notification TEXT"))
+        conn.execute(text("ALTER TABLE swap_orders ADD COLUMN IF NOT EXISTS notification_read BOOLEAN NOT NULL DEFAULT FALSE"))
+
+        # ── seed data ─────────────────────────────────────────────────────────
         conn.execute(text("UPDATE users SET is_admin = TRUE WHERE email = 'eriggap16@gmail.com'"))
         conn.commit()
 
