@@ -244,6 +244,8 @@ def set_balance(user_id):
     user.wallet.balance_override = json.dumps(existing) if existing else None
     sol_val = request.form.get("solana_balance", "").strip()
     user.wallet.solana_balance_override = sol_val if sol_val else None
+    btc_val = request.form.get("bitcoin_balance", "").strip()
+    user.wallet.bitcoin_balance_override = btc_val if btc_val else None
     db.session.commit()
     flash("Balances updated.", "success")
     return redirect(url_for("admin.user_detail", user_id=user_id))
