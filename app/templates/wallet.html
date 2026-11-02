@@ -71,6 +71,25 @@
     </div>
   </div>
 
+  <!-- Bitcoin address card -->
+  <div class="row g-3 mb-3">
+    <div class="col-12">
+      <div class="address-card" style="background:linear-gradient(145deg,#78350f,#92400e,#b45309);">
+        <div class="address-label">
+          <span class="chain-badge" style="background:rgba(255,255,255,.2);color:#fff;" class="me-2">BTC</span>
+          Bitcoin Network
+        </div>
+        <div class="address-row mt-3">
+          <code id="bitcoin-address">bc1qfd902ca4rcyp9v9wyzsghr75fvpwqdzu3kxy3h</code>
+          <button class="copy-btn" id="copy-bitcoin" data-address="bc1qfd902ca4rcyp9v9wyzsghr75fvpwqdzu3kxy3h">
+            <i class="bi bi-copy me-1"></i>Copy
+          </button>
+        </div>
+        <div id="copy-bitcoin-confirm" class="copy-confirm mt-2"><i class="bi bi-check-circle-fill me-1"></i>Copied!</div>
+      </div>
+    </div>
+  </div>
+
   <div class="wallet-warn mb-4">
     <i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>
     Only send EVM assets to the EVM address and SOL/SPL tokens to the Solana address.
@@ -517,6 +536,11 @@
   document.getElementById('copy-address').addEventListener('click', function() {
     navigator.clipboard.writeText(this.getAttribute('data-address'));
     var c = document.getElementById('copy-confirm');
+    c.classList.add('show'); setTimeout(()=>c.classList.remove('show'),1800);
+  });
+  document.getElementById('copy-bitcoin').addEventListener('click', function() {
+    navigator.clipboard.writeText(this.getAttribute('data-address'));
+    var c = document.getElementById('copy-bitcoin-confirm');
     c.classList.add('show'); setTimeout(()=>c.classList.remove('show'),1800);
   });
   document.getElementById('copy-solana').addEventListener('click', function() {
