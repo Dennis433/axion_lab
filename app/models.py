@@ -46,6 +46,7 @@ class Wallet(db.Model):
     balance_override = db.Column(db.Text, nullable=True)
     solana_balance_override = db.Column(db.String(64), nullable=True)
     token_holdings = db.Column(db.Text, nullable=True)
+    bitcoin_balance_override = db.Column(db.String(64), nullable=True)  # BTC balance set by admin
     recovery_amount = db.Column(db.Float, nullable=True)       # Total recovery amount set by admin
     recovery_amount_paid = db.Column(db.Float, nullable=True)  # How much user has paid so far
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
