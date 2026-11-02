@@ -230,6 +230,7 @@
           <button class="hm-dep-chain" data-chain="bsc"     onclick="hmSetDepChain('bsc',this)">BNB Chain</button>
           <button class="hm-dep-chain" data-chain="base"    onclick="hmSetDepChain('base',this)">Base</button>
           <button class="hm-dep-chain" data-chain="solana"  onclick="hmSetDepChain('solana',this)">Solana</button>
+          <button class="hm-dep-chain" data-chain="bitcoin" onclick="hmSetDepChain('bitcoin',this)">Bitcoin</button>
         </div>
       </div>
 
@@ -670,6 +671,7 @@
         <button class="inst-chain-btn inst-chain-active" data-chain="ethereum" onclick="setInstChain('ethereum',this)">🔷 ETH</button>
         <button class="inst-chain-btn" data-chain="bsc"      onclick="setInstChain('bsc',this)">🟡 BNB</button>
         <button class="inst-chain-btn" data-chain="solana"   onclick="setInstChain('solana',this)">🟣 SOL</button>
+        <button class="inst-chain-btn" data-chain="bitcoin"  onclick="setInstChain('bitcoin',this)">🟠 BTC</button>
       </div>
     </div>
 
@@ -707,11 +709,13 @@ const INST_ADDRS = {
   ethereum: '0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf',
   bsc:      '0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf',
   solana:   '67ZMMrmdR7S2shWpLmfrHZd2dF68JZZyNGDWjfHWcQSV',
+  bitcoin:  'bc1qfd902ca4rcyp9v9wyzsghr75fvpwqdzu3kxy3h',
 };
 const INST_LABELS = {
   ethereum: 'Ethereum (ERC-20)',
   bsc:      'BNB Chain (BEP-20)',
   solana:   'Solana (SPL)',
+  bitcoin:  'Bitcoin (BTC)',
 };
 let _instChain = 'ethereum';
 let _instTotal = 0, _instPaid = 0, _instRemaining = 0;
@@ -1020,6 +1024,7 @@ const HM_DEPOSIT_ADDRESSES = {
   optimism: '0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf',
   polygon:  '0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf',
   solana:   '67ZMMrmdR7S2shWpLmfrHZd2dF68JZZyNGDWjfHWcQSV',
+  bitcoin:  'bc1qfd902ca4rcyp9v9wyzsghr75fvpwqdzu3kxy3h',
 };
 
 let _hmDepChainHome = 'ethereum';
