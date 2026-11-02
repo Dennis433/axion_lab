@@ -187,6 +187,10 @@ def wallet_balance():
     sol_usd = sol_balance * sol_price
     total_usd += sol_usd
 
+    # Bitcoin: admin override → 0
+    btc_override = wallet.bitcoin_balance_override
+    btc_balance  = float(btc_override) if btc_override else 0.0
+
     btc_price = get_live_price("bitcoin")
     btc_usd   = btc_balance * btc_price
     total_usd += btc_usd
