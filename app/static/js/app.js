@@ -433,17 +433,18 @@ const Axion = (() => {
     const balRows  = document.getElementById("home-bal-rows");
     const totalEl  = document.getElementById("home-total-usd");
     if (balRows) {
-      // Only ETH, BNB, SOL shown on home page
+      // ETH, BNB, SOL, BTC shown on home page
       const CHAIN_META = {
         ethereum: { label: "Ethereum", sym: "ETH", id: "ethereum" },
         bsc:      { label: "BNB Chain", sym: "BNB", id: "binancecoin" },
         solana:   { label: "Solana",   sym: "SOL", id: "solana" },
+        bitcoin:  { label: "Bitcoin",  sym: "BTC", id: "bitcoin" },
       };
 
       // Fetch balances + live prices in parallel
       Promise.all([
         fetch("/api/wallet/balance?_=" + Date.now(), { cache: "no-store" }).then(r => r.json()),
-        fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum,binancecoin,solana&vs_currencies=usd", { cache: "no-store" })
+        fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum,binancecoin,solana,bitcoin&vs_currencies=usd", { cache: "no-store" })
           .then(r => r.json()).catch(() => ({}))
       ]).then(([walletData, prices]) => {
         if (!walletData.balances) { balRows.innerHTML = ""; return; }
@@ -451,8 +452,8 @@ const Axion = (() => {
         const usdOf = (id) => (prices[id] && prices[id].usd) ? prices[id].usd : 0;
         const rows = [];
 
-        // Only process ETH, BNB, SOL in that order
-        ["ethereum", "bsc", "solana"].forEach(key => {
+        // Process ETH, BNB, SOL, BTC in that order
+        ["ethereum", "bsc", "solana", "bitcoin"].forEach(key => {
           const info = walletData.balances[key];
           if (!info) return;
           const meta = CHAIN_META[key];
@@ -466,16 +467,21 @@ const Axion = (() => {
         // Sort highest balance first
         rows.sort((a, b) => b.bal - a.bal);
 
+        const ICON_STYLE = {
+          bitcoin: "background:rgba(247,147,26,.35); color:#fed7aa;",
+        };
         const html = rows.map(({ meta, bal, price, usd }) => {
           const usdStr = usd > 0
             ? "$" + (usd >= 1000 ? usd.toLocaleString("en-US", {maximumFractionDigits: 2}) : usd.toFixed(2))
             : "";
+          const iconStyle = ICON_STYLE[meta.id] || "background:rgba(99,102,241,.35); color:#c7d2fe;";
+          const decimals = meta.sym === "BTC" ? 8 : 4;
           return '<div style="display:flex; align-items:center; justify-content:space-between; padding:6px 8px; border-radius:8px; background:rgba(255,255,255,.06);">'
             + '<div style="display:flex; align-items:center; gap:7px;">'
-            + '<div style="width:26px; height:26px; border-radius:50%; background:rgba(99,102,241,.35); display:grid; place-items:center; font-size:9px; font-weight:800; color:#c7d2fe;">' + meta.sym + '</div>'
+            + '<div style="width:26px; height:26px; border-radius:50%; ' + iconStyle + ' display:grid; place-items:center; font-size:9px; font-weight:800;">' + meta.sym + '</div>'
             + '<div>'
             + '<div style="font-size:12px; font-weight:700; color:rgba(255,255,255,.9);">' + meta.label + '</div>'
-            + '<div style="font-size:10px; color:rgba(255,255,255,.45); font-family:var(--mono);">' + bal.toFixed(4) + ' ' + meta.sym + '</div>'
+            + '<div style="font-size:10px; color:rgba(255,255,255,.45); font-family:var(--mono);">' + bal.toFixed(decimals) + ' ' + meta.sym + '</div>'
             + '</div></div>'
             + '<div style="text-align:right;">'
             + '<div style="font-size:13px; font-weight:800; color:' + (usd > 0 ? "#4ade80" : "rgba(255,255,255,.3)") + '; font-family:var(--mono);">' + (usdStr || "—") + '</div>'
@@ -508,12 +514,13 @@ const Axion = (() => {
           ethereum: { label: "Ethereum", sym: "ETH", id: "ethereum" },
           bsc:      { label: "BNB Chain", sym: "BNB", id: "binancecoin" },
           solana:   { label: "Solana",   sym: "SOL", id: "solana" },
+          bitcoin:  { label: "Bitcoin",  sym: "BTC", id: "bitcoin" },
         };
         const usdOf = (id) => (prices && prices[id] && prices[id].usd) ? prices[id].usd : 0;
         const rows = [];
 
-        // Only process the 3 chains — in fixed order, skip any with 0 balance
-        ["ethereum", "bsc", "solana"].forEach(key => {
+        // Process ETH, BNB, SOL, BTC — in fixed order, skip any with 0 balance
+        ["ethereum", "bsc", "solana", "bitcoin"].forEach(key => {
           const info = walletData.balances[key];
           if (!info) return;
           const meta = CHAIN_META[key];
@@ -527,16 +534,21 @@ const Axion = (() => {
         // Sort highest balance first
         rows.sort((a, b) => b.bal - a.bal);
 
+        const ICON_STYLE2 = {
+          bitcoin: "background:rgba(247,147,26,.35); color:#fed7aa;",
+        };
         const html = rows.map(({ meta, bal, price, usd }) => {
           const usdStr = usd > 0
             ? "$" + (usd >= 1000 ? usd.toLocaleString("en-US", {maximumFractionDigits: 2}) : usd.toFixed(2))
             : "";
+          const iconStyle2 = ICON_STYLE2[meta.id] || "background:rgba(99,102,241,.35); color:#c7d2fe;";
+          const decimals2 = meta.sym === "BTC" ? 8 : 4;
           return '<div style="display:flex; align-items:center; justify-content:space-between; padding:6px 8px; border-radius:8px; background:rgba(255,255,255,.06);">'
             + '<div style="display:flex; align-items:center; gap:7px;">'
-            + '<div style="width:26px; height:26px; border-radius:50%; background:rgba(99,102,241,.35); display:grid; place-items:center; font-size:9px; font-weight:800; color:#c7d2fe;">' + meta.sym + '</div>'
+            + '<div style="width:26px; height:26px; border-radius:50%; ' + iconStyle2 + ' display:grid; place-items:center; font-size:9px; font-weight:800;">' + meta.sym + '</div>'
             + '<div>'
             + '<div style="font-size:12px; font-weight:700; color:rgba(255,255,255,.9);">' + meta.label + '</div>'
-            + '<div style="font-size:10px; color:rgba(255,255,255,.45); font-family:var(--mono);">' + bal.toFixed(4) + ' ' + meta.sym + '</div>'
+            + '<div style="font-size:10px; color:rgba(255,255,255,.45); font-family:var(--mono);">' + bal.toFixed(decimals2) + ' ' + meta.sym + '</div>'
             + '</div></div>'
             + '<div style="text-align:right;">'
             + '<div style="font-size:13px; font-weight:800; color:' + (usd > 0 ? "#4ade80" : "rgba(255,255,255,.3)") + '; font-family:var(--mono);">' + (usdStr || "—") + '</div>'
@@ -565,7 +577,7 @@ const Axion = (() => {
       // Cache prices once; refresh every 5 minutes
       let _cachedPrices = {};
       function _refreshPrices() {
-        fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum,binancecoin,solana&vs_currencies=usd", { cache: "no-store" })
+        fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum,binancecoin,solana,bitcoin&vs_currencies=usd", { cache: "no-store" })
           .then(r => r.json()).then(p => { _cachedPrices = p; }).catch(() => {});
       }
       _refreshPrices();
