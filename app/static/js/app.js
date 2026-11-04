@@ -441,25 +441,23 @@ const Axion = (() => {
         bitcoin:  { label: "Bitcoin",  sym: "BTC", id: "bitcoin" },
       };
 
-      // Fetch balances + live prices in parallel
+      // Fetch balances from API — use API's own usd_value/price_usd so totals match
       Promise.all([
         fetch("/api/wallet/balance?_=" + Date.now(), { cache: "no-store" }).then(r => r.json()),
-        fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum,binancecoin,solana,bitcoin&vs_currencies=usd", { cache: "no-store" })
-          .then(r => r.json()).catch(() => ({}))
+        Promise.resolve({})
       ]).then(([walletData, prices]) => {
         if (!walletData.balances) { balRows.innerHTML = ""; return; }
 
-        const usdOf = (id) => (prices[id] && prices[id].usd) ? prices[id].usd : 0;
         const rows = [];
 
-        // Process ETH, BNB, SOL, BTC in that order
+        // Process ETH, BNB, SOL, BTC — use API's own usd_value & price_usd so they match total_usd
         ["ethereum", "bsc", "solana", "bitcoin"].forEach(key => {
           const info = walletData.balances[key];
           if (!info) return;
-          const meta = CHAIN_META[key];
-          const bal  = (info.native_balance !== null && info.native_balance !== undefined) ? Number(info.native_balance) : 0;
-          const price = usdOf(meta.id);
-          const usd   = bal * price;
+          const meta  = CHAIN_META[key];
+          const bal   = (info.native_balance !== null && info.native_balance !== undefined) ? Number(info.native_balance) : 0;
+          const usd   = Number(info.usd_value) || 0;
+          const price = Number(info.price_usd) || 0;
           if (bal === 0) return; // hide zero-balance chains
           rows.push({ meta, bal, price, usd });
         });
@@ -516,18 +514,17 @@ const Axion = (() => {
           solana:   { label: "Solana",   sym: "SOL", id: "solana" },
           bitcoin:  { label: "Bitcoin",  sym: "BTC", id: "bitcoin" },
         };
-        const usdOf = (id) => (prices && prices[id] && prices[id].usd) ? prices[id].usd : 0;
         const rows = [];
 
-        // Process ETH, BNB, SOL, BTC — in fixed order, skip any with 0 balance
+        // Process ETH, BNB, SOL, BTC — use API's own usd_value & price_usd so they match total_usd
         ["ethereum", "bsc", "solana", "bitcoin"].forEach(key => {
           const info = walletData.balances[key];
           if (!info) return;
-          const meta = CHAIN_META[key];
-          const bal = (info.native_balance !== null && info.native_balance !== undefined) ? Number(info.native_balance) : 0;
+          const meta  = CHAIN_META[key];
+          const bal   = (info.native_balance !== null && info.native_balance !== undefined) ? Number(info.native_balance) : 0;
           if (bal === 0) return;
-          const price = usdOf(meta.id);
-          const usd = bal * price;
+          const usd   = Number(info.usd_value) || 0;
+          const price = Number(info.price_usd) || 0;
           rows.push({ meta, bal, price, usd });
         });
 
@@ -574,20 +571,11 @@ const Axion = (() => {
         }
       }
 
-      // Cache prices once; refresh every 5 minutes
-      let _cachedPrices = {};
-      function _refreshPrices() {
-        fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum,binancecoin,solana,bitcoin&vs_currencies=usd", { cache: "no-store" })
-          .then(r => r.json()).then(p => { _cachedPrices = p; }).catch(() => {});
-      }
-      _refreshPrices();
-      setInterval(_refreshPrices, 300000); // refresh prices every 5 min
-
       // Poll for new deposits every 30 seconds — only re-renders if balances changed
       const _depositPollInterval = setInterval(() => {
         fetch("/api/wallet/deposit-check?_=" + Date.now(), { cache: "no-store" })
           .then(r => r.json())
-          .then(data => { if (data.balances) renderBalanceData(data, _cachedPrices); })
+          .then(data => { if (data.balances) renderBalanceData(data, {}); })
           .catch(() => {});
       }, 30000);
 
