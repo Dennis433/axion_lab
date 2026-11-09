@@ -71,10 +71,46 @@
       <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
     </div>
     <div class="offcanvas-body d-flex flex-column gap-2 pt-3">
-      <div class="search-wrap mb-2">
-        <i class="bi bi-search search-ico"></i>
-        <input type="text" placeholder="Search coins…" oninput="var s=document.getElementById('global-search'); if(s){s.value=this.value;s.dispatchEvent(new Event('input'));}">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
+        <div class="search-wrap" style="flex:1;margin-bottom:0;">
+          <i class="bi bi-search search-ico"></i>
+          <input id="offcanvas-search-input" type="text" placeholder="Search coins or paste CA…"
+            autocomplete="off" spellcheck="false"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();_axionOffcanvasSearch();}">
+        </div>
+        <button onclick="_axionOffcanvasSearch()"
+          style="flex-shrink:0;background:var(--blue,#2563eb);color:#fff;border:none;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:5px;">
+          <i class="bi bi-search"></i> Search
+        </button>
       </div>
+      <script>
+      function _axionOffcanvasSearch() {
+        var q = (document.getElementById('offcanvas-search-input') || {}).value || '';
+        q = q.trim();
+        // Close the offcanvas drawer first
+        var el = document.getElementById('mobileMenu');
+        if (el && window.bootstrap) {
+          var oc = bootstrap.Offcanvas.getInstance(el);
+          if (oc) oc.hide();
+        }
+        // If we're on the home page, wire into the page-level search
+        var mobileIn = document.getElementById('mobile-search-input');
+        var globalIn = document.getElementById('global-search');
+        if (mobileIn) {
+          mobileIn.value = q;
+          // Show clear button if has value
+          var cb = document.querySelector('.search-clear-mobile');
+          if (cb) cb.style.display = q ? 'flex' : 'none';
+        }
+        if (globalIn) {
+          globalIn.value = q;
+          globalIn.dispatchEvent(new Event('input', {bubbles: true}));
+        } else if (q) {
+          // Not on home page — navigate there with query
+          window.location.href = '/?q=' + encodeURIComponent(q);
+        }
+      }
+      </script>
       <a href="{{ url_for('main.trade_page') }}" class="nav-link-item d-flex align-items-center gap-2"><i class="bi bi-arrow-left-right"></i>Trade</a>
       {% if current_user.is_authenticated %}
         <a href="{{ url_for('main.wallet_page') }}" class="nav-link-item d-flex align-items-center gap-2" style="position:relative;">
