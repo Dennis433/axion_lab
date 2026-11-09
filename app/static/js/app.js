@@ -854,12 +854,17 @@ const Axion = (() => {
 
 // Global helper — called from inline onclick in search bar
 function clearGlobalSearch() {
-  const input   = document.getElementById("global-search");
+  const input    = document.getElementById("global-search");
   const clearBtn = document.getElementById("search-clear-btn");
+  const mobileIn = document.getElementById("mobile-search-input");
+  const mClear   = document.querySelector(".search-clear-mobile");
+  const dClear   = document.querySelector(".search-clear-desktop");
   if (input) {
     input.value = "";
-    input.dispatchEvent(new Event("input"));   // triggers debounced load + hides btn
-    input.focus();
+    input.dispatchEvent(new Event("input", {bubbles: true}));
   }
+  if (mobileIn) mobileIn.value = "";
   if (clearBtn) clearBtn.style.display = "none";
+  if (mClear)   mClear.style.display   = "none";
+  if (dClear)   dClear.style.display   = "none";
 }
