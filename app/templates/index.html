@@ -131,23 +131,37 @@
     </div>
 
     <div class="search-bar-row">
-      <div class="search-wrap">
+      <!-- Desktop: wraps #global-search which lives in topbar. On mobile #global-search
+           is hidden in the topbar so we show this inline bar instead and proxy its value. -->
+      <div class="search-wrap d-none d-md-flex">
         <svg class="search-ico" width="15" height="15" viewBox="0 0 24 24" fill="none">
           <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2.2"/>
           <path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
         </svg>
-        <input
-          id="global-search"
-          type="text"
-          placeholder="Search token or paste contract address…"
-          autocomplete="off"
-          spellcheck="false"
-        />
-        <button id="search-clear-btn" class="search-clear-btn" style="display:none;" onclick="clearGlobalSearch()" title="Clear search">
+        <!-- Desktop bar: just mirrors the topbar #global-search -->
+        <input class="search-mirror-desktop" type="text" placeholder="Search token or paste contract address…"
+          autocomplete="off" spellcheck="false"
+          oninput="var s=document.getElementById('global-search');if(s&&s.value!==this.value){s.value=this.value;s.dispatchEvent(new Event('input',{bubbles:true}));}">
+        <button class="search-clear-btn search-clear-desktop" style="display:none;" title="Clear search"
+          onclick="document.getElementById('global-search').value='';document.querySelector('.search-mirror-desktop').value='';document.getElementById('mobile-search-input').value='';document.getElementById('global-search').dispatchEvent(new Event('input',{bubbles:true}));this.style.display='none';document.querySelector('.search-clear-mobile').style.display='none';">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
         </button>
       </div>
-      <div class="search-powered-by">
+      <!-- Mobile: visible search bar that proxies into #global-search -->
+      <div class="search-wrap d-flex d-md-none mobile-search-bar" style="flex:1;">
+        <svg class="search-ico" width="15" height="15" viewBox="0 0 24 24" fill="none">
+          <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2.2"/>
+          <path d="M16.5 16.5L21 21" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+        <input id="mobile-search-input" type="text" placeholder="Search coins…"
+          autocomplete="off" spellcheck="false"
+          oninput="var s=document.getElementById('global-search');if(s){s.value=this.value;s.dispatchEvent(new Event('input',{bubbles:true}));}var cb=document.querySelector('.search-clear-mobile');if(cb)cb.style.display=this.value?'flex':'none';">
+        <button class="search-clear-btn search-clear-mobile" style="display:none;" title="Clear"
+          onclick="document.getElementById('mobile-search-input').value='';document.getElementById('global-search').value='';document.getElementById('global-search').dispatchEvent(new Event('input',{bubbles:true}));this.style.display='none';">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="search-powered-by d-none d-md-flex">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 8v4l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         Powered by DexScreener
       </div>
