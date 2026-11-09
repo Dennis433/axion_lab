@@ -891,7 +891,29 @@ a { text-decoration: none; color: inherit; }
   .sidebar { position: static; }
 }
 
+/* On mobile the sidebar stacks above main content and can be very tall —
+   hide it entirely so the token table is immediately visible. */
+@media (max-width: 768px) {
+  .sidebar { display: none !important; }
+  .page-wrap { padding: 0 10px; gap: 0; }
+  .main-content { padding-top: 8px; }
+
+  /* Movers section: smaller cards, less vertical space */
+  .movers-section { margin-bottom: 14px; }
+  .movers-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; }
+  .mover-skeleton { height: 72px; }
+  .mover-card { padding: 10px 8px; }
+
+  /* Mobile search bar fills the row */
+  .mobile-search-bar { max-width: 100%; }
+  .search-bar-row { margin-bottom: 10px; }
+
+  /* Table adjustments */
+  .token-table th, .token-table td { font-size: 12px; padding: 10px 8px; }
+  .token-table th:nth-child(4), .token-table td:nth-child(4) { display: none; } /* hide CHART col */
+}
+
 @media (max-width: 640px) {
-  .movers-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
+  .movers-grid { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); }
   .home-modal-card { padding: 18px 16px; }
 }
