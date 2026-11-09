@@ -397,6 +397,20 @@ const Axion = (() => {
       return el ? el.value.trim() : "";
     }
 
+    // Pre-fill search from ?q= URL param (e.g. navigated from another page)
+    (function prefillSearchFromURL() {
+      const urlQ = new URLSearchParams(window.location.search).get("q");
+      if (!urlQ) return;
+      const globalIn = document.getElementById("global-search");
+      const mobileIn = document.getElementById("mobile-search-input");
+      if (globalIn) globalIn.value = urlQ;
+      if (mobileIn) {
+        mobileIn.value = urlQ;
+        var cb = document.querySelector(".search-clear-mobile");
+        if (cb) cb.style.display = "flex";
+      }
+    })();
+
     load();
     pollTimer = setInterval(load, 20000);
     window.addEventListener("beforeunload", () => clearInterval(pollTimer));
