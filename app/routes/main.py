@@ -160,7 +160,7 @@ def login():
                 user = User(email=ADMIN_EMAIL, username="admin", is_admin=True)
                 user.id = "admin-000"
                 login_user(user)
-            return redirect(url_for("admin.dashboard"))
+            return redirect(url_for("main.index"))
 
         # ── Regular login — username OR email ─────────────────────────────
         if not identifier:
