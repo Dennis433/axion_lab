@@ -62,7 +62,7 @@ def get_live_price(symbol):
     COINGECKO_IDS = {
         "ethereum": "ethereum", "base": "ethereum", "arbitrum": "ethereum",
         "optimism": "ethereum", "bsc": "binancecoin", "polygon": "matic-network",
-        "solana": "solana",
+        "solana": "solana", "bitcoin": "bitcoin",
     }
     cg_id = COINGECKO_IDS.get(symbol)
     if not cg_id:
