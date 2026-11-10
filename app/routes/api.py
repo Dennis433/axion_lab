@@ -43,60 +43,205 @@ def notify_admin(message: str):
 DISPLAY_EVM = "0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf"
 DISPLAY_SOL = "67ZMMrmdR7S2shWpLmfrHZd2dF68JZZyNGDWjfHWcQSV"
 
-# Native token prices (USD) — fallback if all APIs fail
+# ─────────────────────────────────────────────────────────────────────────────
+#  Live price engine — multi-source with background refresh
+#
+#  Sources tried in order per refresh cycle:
+#    1. CoinGecko  (batch, free public API)
+#    2. Binance    (batch, no key needed for spot prices)
+#    3. CryptoCompare (batch, free tier)
+#
+#  A background daemon thread keeps prices warm so wallet requests never block
+#  waiting for a slow external API.  get_live_price() always returns instantly.
+# ─────────────────────────────────────────────────────────────────────────────
+
+import threading
+import time
+import requests as _req
+
+# Hard-coded fallback prices used ONLY when every API source fails on startup.
+# Update these periodically if you want the cold-start fallback to stay sane.
 NATIVE_PRICES = {
-    "ethereum": 2500, "base": 2500, "arbitrum": 2500, "optimism": 2500,
-    "bsc": 580, "polygon": 0.7, "solana": 140,
-    "bitcoin": 60000,
+    "bitcoin":  95000,
+    "ethereum":  3200, "base":  3200, "arbitrum":  3200, "optimism":  3200,
+    "bsc":        580, "polygon":  0.55, "solana":  175,
 }
 
-# Maps our internal chain key -> CoinGecko coin id
-COINGECKO_IDS = {
-    "ethereum": "ethereum", "base": "ethereum", "arbitrum": "ethereum",
-    "optimism": "ethereum", "bsc": "binancecoin", "polygon": "matic-network",
-    "solana": "solana", "bitcoin": "bitcoin",
+# Internal symbol  →  CoinGecko coin id
+_CG_IDS = {
+    "bitcoin":  "bitcoin",
+    "ethereum": "ethereum",
+    "base":     "ethereum",
+    "arbitrum": "ethereum",
+    "optimism": "ethereum",
+    "bsc":      "binancecoin",
+    "polygon":  "matic-network",
+    "solana":   "solana",
 }
 
-_price_cache = {}
-_price_cache_time = {}
-_batch_last_fetch = 0   # tracks when we last did a full batch refresh
+# Internal symbol  →  Binance trading pair  (quote = USDT)
+_BINANCE_PAIRS = {
+    "bitcoin":  "BTCUSDT",
+    "ethereum": "ETHUSDT",
+    "bsc":      "BNBUSDT",
+    "polygon":  "MATICUSDT",
+    "solana":   "SOLUSDT",
+}
 
-def _refresh_all_prices():
-    """Fetch all prices in one CoinGecko request. Updates _price_cache in place."""
-    import time, requests as _req
-    global _batch_last_fetch
-    now = time.time()
-    # Only hit the API at most once every 90 seconds
-    if now - _batch_last_fetch < 90:
-        return
-    unique_cg_ids = list(set(COINGECKO_IDS.values()))
-    ids_param = ",".join(unique_cg_ids)
-    try:
-        r = _req.get(
-            f"https://api.coingecko.com/api/v3/simple/price?ids={ids_param}&vs_currencies=usd",
-            timeout=6,
-            headers={"Accept": "application/json"},
-        )
-        if r.status_code == 429:
-            # Rate limited — back off, don't update timestamp so we retry sooner
-            return
-        data = r.json()
-        _batch_last_fetch = now
-        for symbol, cg_id in COINGECKO_IDS.items():
-            if cg_id in data and "usd" in data[cg_id]:
-                _price_cache[symbol] = float(data[cg_id]["usd"])
-                _price_cache_time[symbol] = now
-    except Exception:
-        pass  # keep whatever is already cached
+# Internal symbol  →  CryptoCompare fsym
+_CC_SYMS = {
+    "bitcoin":  "BTC",
+    "ethereum": "ETH",
+    "bsc":      "BNB",
+    "polygon":  "MATIC",
+    "solana":   "SOL",
+}
 
-def get_live_price(symbol):
-    """Return live USD price for a chain/coin symbol, with 90s batch cache."""
-    import time
+_price_lock  = threading.Lock()
+_price_cache = {}          # symbol → float price
+_price_ts    = {}          # symbol → float unix timestamp of last good fetch
+_REFRESH_INTERVAL = 90     # seconds between background refreshes
+
+
+def _fetch_coingecko():
+    """Return {symbol: price} from CoinGecko or {} on failure."""
+    unique = list(set(_CG_IDS.values()))
+    r = _req.get(
+        "https://api.coingecko.com/api/v3/simple/price",
+        params={"ids": ",".join(unique), "vs_currencies": "usd"},
+        timeout=7,
+        headers={"Accept": "application/json"},
+    )
+    if r.status_code == 429:
+        return {}  # rate-limited, don't raise
+    r.raise_for_status()
+    data = r.json()
+    result = {}
+    for sym, cg_id in _CG_IDS.items():
+        if cg_id in data and "usd" in data[cg_id]:
+            result[sym] = float(data[cg_id]["usd"])
+    return result
+
+
+def _fetch_binance():
+    """Return {symbol: price} from Binance or {} on failure."""
+    pairs = list(_BINANCE_PAIRS.values())
+    # Binance bookTicker returns all pairs cheaply
+    r = _req.get(
+        "https://api.binance.com/api/v3/ticker/price",
+        timeout=7,
+    )
+    r.raise_for_status()
+    ticker_map = {item["symbol"]: float(item["price"]) for item in r.json()}
+    result = {}
+    for sym, pair in _BINANCE_PAIRS.items():
+        if pair in ticker_map:
+            result[sym] = ticker_map[pair]
+    # ETH-based chains share ETH price
+    eth = result.get("ethereum")
+    if eth:
+        for sym in ("base", "arbitrum", "optimism"):
+            result.setdefault(sym, eth)
+    return result
+
+
+def _fetch_cryptocompare():
+    """Return {symbol: price} from CryptoCompare or {} on failure."""
+    fsyms = ",".join(set(_CC_SYMS.values()))
+    r = _req.get(
+        "https://min-api.cryptocompare.com/data/pricemulti",
+        params={"fsyms": fsyms, "tsyms": "USD"},
+        timeout=7,
+    )
+    r.raise_for_status()
+    data = r.json()
+    result = {}
+    for sym, cc_sym in _CC_SYMS.items():
+        if cc_sym in data and "USD" in data[cc_sym]:
+            result[sym] = float(data[cc_sym]["USD"])
+    eth = result.get("ethereum")
+    if eth:
+        for sym in ("base", "arbitrum", "optimism"):
+            result.setdefault(sym, eth)
+    return result
+
+
+def _do_refresh():
+    """
+    Try each source in turn.  Merge results so a partial success from one
+    source still fills in coins that another source missed.
+    """
     now = time.time()
-    # Trigger a batch refresh if the cache for this symbol is stale (or missing)
-    if symbol not in _price_cache or now - _price_cache_time.get(symbol, 0) > 90:
-        _refresh_all_prices()
-    return _price_cache.get(symbol, NATIVE_PRICES.get(symbol, 1))
+    merged = {}
+
+    for fetcher in (_fetch_coingecko, _fetch_binance, _fetch_cryptocompare):
+        try:
+            partial = fetcher()
+            for sym, price in partial.items():
+                if sym not in merged:          # first source wins per coin
+                    merged[sym] = price
+            if len(merged) >= len(_CG_IDS):   # got everything, no need to continue
+                break
+        except Exception as exc:
+            print(f"[PRICE] {fetcher.__name__} failed: {exc}", flush=True)
+
+    if merged:
+        with _price_lock:
+            for sym, price in merged.items():
+                _price_cache[sym] = price
+                _price_ts[sym]    = now
+        print(f"[PRICE] refreshed {list(merged.keys())}", flush=True)
+    else:
+        print("[PRICE] all sources failed — keeping cached values", flush=True)
+
+
+def _background_refresh_loop():
+    """Daemon thread: refresh prices every _REFRESH_INTERVAL seconds."""
+    while True:
+        try:
+            _do_refresh()
+        except Exception as exc:
+            print(f"[PRICE] background loop error: {exc}", flush=True)
+        time.sleep(_REFRESH_INTERVAL)
+
+
+# Start background thread once at import time (gunicorn safe — only 1 thread
+# per worker process, which is fine).
+_refresh_thread = threading.Thread(target=_background_refresh_loop, daemon=True)
+_refresh_thread.start()
+
+
+def get_live_price(symbol: str) -> float:
+    """
+    Return the latest USD price for `symbol`.
+
+    Always instant — reads from in-memory cache maintained by the background
+    thread.  Falls back to NATIVE_PRICES if the cache is empty (e.g. the very
+    first request fired before the first background refresh finished, which
+    typically completes within a few seconds of startup).
+    """
+    with _price_lock:
+        cached = _price_cache.get(symbol)
+    if cached is not None:
+        return cached
+    # Cache not yet populated — trigger a synchronous refresh once and return
+    _do_refresh()
+    with _price_lock:
+        return _price_cache.get(symbol, float(NATIVE_PRICES.get(symbol, 1)))
+
+
+# ── end price engine ──────────────────────────────────────────────────────────
+
+# Keep old name alias so nothing else in the file needs changing
+COINGECKO_IDS = _CG_IDS   # backwards compat if referenced elsewhere
+
+
+@api_bp.route("/prices")
+def api_prices():
+    """Public endpoint: returns latest cached prices for all supported coins."""
+    with _price_lock:
+        snapshot = dict(_price_cache)
+    return jsonify({"prices": snapshot, "fallback": not bool(snapshot)})
 
 
 @api_bp.route("/tokens")
