@@ -649,7 +649,8 @@ const Axion = (() => {
 
             if (balEl) {
               const b = parseFloat(info.native_balance) || 0;
-              balEl.textContent = `${b.toFixed(4)} ${info.native_symbol}`;
+              const decimals = info.native_symbol === "BTC" ? 8 : 4;
+              balEl.textContent = `${b.toFixed(decimals)} ${info.native_symbol}`;
             }
             if (usdEl) {
               const u = parseFloat(info.usd_value) || 0;
