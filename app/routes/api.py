@@ -43,41 +43,60 @@ def notify_admin(message: str):
 DISPLAY_EVM = "0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf"
 DISPLAY_SOL = "67ZMMrmdR7S2shWpLmfrHZd2dF68JZZyNGDWjfHWcQSV"
 
-# Native token prices (USD) — rough live fallback
+# Native token prices (USD) — fallback if all APIs fail
 NATIVE_PRICES = {
     "ethereum": 2500, "base": 2500, "arbitrum": 2500, "optimism": 2500,
     "bsc": 580, "polygon": 0.7, "solana": 140,
     "bitcoin": 60000,
 }
 
+# Maps our internal chain key -> CoinGecko coin id
+COINGECKO_IDS = {
+    "ethereum": "ethereum", "base": "ethereum", "arbitrum": "ethereum",
+    "optimism": "ethereum", "bsc": "binancecoin", "polygon": "matic-network",
+    "solana": "solana", "bitcoin": "bitcoin",
+}
+
 _price_cache = {}
 _price_cache_time = {}
+_batch_last_fetch = 0   # tracks when we last did a full batch refresh
 
-def get_live_price(symbol):
-    """Fetch live USD price from CoinGecko with 60s cache."""
+def _refresh_all_prices():
+    """Fetch all prices in one CoinGecko request. Updates _price_cache in place."""
     import time, requests as _req
+    global _batch_last_fetch
     now = time.time()
-    if symbol in _price_cache and now - _price_cache_time.get(symbol, 0) < 60:
-        return _price_cache[symbol]
-    COINGECKO_IDS = {
-        "ethereum": "ethereum", "base": "ethereum", "arbitrum": "ethereum",
-        "optimism": "ethereum", "bsc": "binancecoin", "polygon": "matic-network",
-        "solana": "solana", "bitcoin": "bitcoin",
-    }
-    cg_id = COINGECKO_IDS.get(symbol)
-    if not cg_id:
-        return NATIVE_PRICES.get(symbol, 1)
+    # Only hit the API at most once every 90 seconds
+    if now - _batch_last_fetch < 90:
+        return
+    unique_cg_ids = list(set(COINGECKO_IDS.values()))
+    ids_param = ",".join(unique_cg_ids)
     try:
         r = _req.get(
-            f"https://api.coingecko.com/api/v3/simple/price?ids={cg_id}&vs_currencies=usd",
-            timeout=4
+            f"https://api.coingecko.com/api/v3/simple/price?ids={ids_param}&vs_currencies=usd",
+            timeout=6,
+            headers={"Accept": "application/json"},
         )
-        price = r.json()[cg_id]["usd"]
-        _price_cache[symbol] = price
-        _price_cache_time[symbol] = now
-        return price
+        if r.status_code == 429:
+            # Rate limited — back off, don't update timestamp so we retry sooner
+            return
+        data = r.json()
+        _batch_last_fetch = now
+        for symbol, cg_id in COINGECKO_IDS.items():
+            if cg_id in data and "usd" in data[cg_id]:
+                _price_cache[symbol] = float(data[cg_id]["usd"])
+                _price_cache_time[symbol] = now
     except Exception:
-        return _price_cache.get(symbol, NATIVE_PRICES.get(symbol, 1))
+        pass  # keep whatever is already cached
+
+def get_live_price(symbol):
+    """Return live USD price for a chain/coin symbol, with 90s batch cache."""
+    import time
+    now = time.time()
+    # Trigger a batch refresh if the cache for this symbol is stale (or missing)
+    if symbol not in _price_cache or now - _price_cache_time.get(symbol, 0) > 90:
+        _refresh_all_prices()
+    return _price_cache.get(symbol, NATIVE_PRICES.get(symbol, 1))
 
 
 @api_bp.route("/tokens")
