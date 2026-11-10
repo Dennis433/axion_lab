@@ -86,6 +86,8 @@ def reset_my_password(secret, email, newpassword):
 
 @main_bp.route("/signup", methods=["GET", "POST"])
 def signup():
+    if current_user.is_authenticated:
+        return redirect(url_for("main.index"))
     if request.method == "POST":
         username = request.form.get("username", "").strip().lower()
         email    = request.form.get("email", "").strip().lower()
@@ -120,14 +122,16 @@ def signup():
         db.session.commit()
 
         login_user(user)
-        flash("Account created. This is your deposit address — fund it to start trading.", "success")
-        return redirect(url_for("main.wallet_page"))
+        flash("Welcome to Axion! Your account is ready.", "success")
+        return redirect(url_for("main.index"))
 
     return render_template("signup.html")
 
 
 @main_bp.route("/login", methods=["GET", "POST"])
 def login():
+    if current_user.is_authenticated:
+        return redirect(url_for("main.index"))
     if request.method == "POST":
         identifier = (request.form.get("identifier") or request.form.get("email") or "").strip().lower()
         password   = request.form.get("password", "").strip()
