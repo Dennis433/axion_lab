@@ -79,22 +79,22 @@ _CG_IDS = {
     "solana":   "solana",
 }
 
-# Internal symbol  →  Binance trading pair  (quote = USDT)
-_BINANCE_PAIRS = {
-    "bitcoin":  "BTCUSDT",
-    "ethereum": "ETHUSDT",
-    "bsc":      "BNBUSDT",
-    "polygon":  "MATICUSDT",
-    "solana":   "SOLUSDT",
+# Internal symbol  →  Kraken pair name (USD quote, no geo-block, no key)
+_KRAKEN_PAIRS = {
+    "bitcoin":  "XBTUSD",
+    "ethereum": "ETHUSD",
+    "bsc":      "BNBUSD",
+    "polygon":  "MATICUSD",
+    "solana":   "SOLUSD",
 }
 
-# Internal symbol  →  CryptoCompare fsym
-_CC_SYMS = {
-    "bitcoin":  "BTC",
-    "ethereum": "ETH",
-    "bsc":      "BNB",
-    "polygon":  "MATIC",
-    "solana":   "SOL",
+# Internal symbol  →  Coinbase product id (no key, globally accessible)
+_COINBASE_PAIRS = {
+    "bitcoin":  "BTC-USD",
+    "ethereum": "ETH-USD",
+    "bsc":      "BNB-USD",
+    "polygon":  "MATIC-USD",
+    "solana":   "SOL-USD",
 }
 
 _price_lock  = threading.Lock()
@@ -123,21 +123,28 @@ def _fetch_coingecko():
     return result
 
 
-def _fetch_binance():
-    """Return {symbol: price} from Binance or {} on failure."""
-    pairs = list(_BINANCE_PAIRS.values())
-    # Binance bookTicker returns all pairs cheaply
+def _fetch_kraken():
+    """Return {symbol: price} from Kraken public ticker — no key, no geo-block."""
+    pairs_param = ",".join(_KRAKEN_PAIRS.values())
     r = _req.get(
-        "https://api.binance.com/api/v3/ticker/price",
+        "https://api.kraken.com/0/public/Ticker",
+        params={"pair": pairs_param},
         timeout=7,
+        headers={"Accept": "application/json"},
     )
     r.raise_for_status()
-    ticker_map = {item["symbol"]: float(item["price"]) for item in r.json()}
+    data = r.json()
+    if data.get("error"):
+        raise ValueError(f"Kraken error: {data['error']}")
     result = {}
-    for sym, pair in _BINANCE_PAIRS.items():
-        if pair in ticker_map:
-            result[sym] = ticker_map[pair]
-    # ETH-based chains share ETH price
+    # Kraken mangles pair names (e.g. XBTUSD → XXBTZUSD), so match by value
+    ticker = data.get("result", {})
+    for sym, pair in _KRAKEN_PAIRS.items():
+        # Try exact pair name and common Kraken variants
+        for key in (pair, "X" + pair, "XX" + pair[:3] + "Z" + pair[3:]):
+            if key in ticker:
+                result[sym] = float(ticker[key]["c"][0])  # "c" = last trade closed
+                break
     eth = result.get("ethereum")
     if eth:
         for sym in ("base", "arbitrum", "optimism"):
@@ -145,20 +152,20 @@ def _fetch_binance():
     return result
 
 
-def _fetch_cryptocompare():
-    """Return {symbol: price} from CryptoCompare or {} on failure."""
-    fsyms = ",".join(set(_CC_SYMS.values()))
-    r = _req.get(
-        "https://min-api.cryptocompare.com/data/pricemulti",
-        params={"fsyms": fsyms, "tsyms": "USD"},
-        timeout=7,
-    )
-    r.raise_for_status()
-    data = r.json()
+def _fetch_coinbase():
+    """Return {symbol: price} from Coinbase public spot API — no key needed."""
     result = {}
-    for sym, cc_sym in _CC_SYMS.items():
-        if cc_sym in data and "USD" in data[cc_sym]:
-            result[sym] = float(data[cc_sym]["USD"])
+    for sym, product in _COINBASE_PAIRS.items():
+        try:
+            r = _req.get(
+                f"https://api.coinbase.com/v2/prices/{product}/spot",
+                timeout=5,
+                headers={"Accept": "application/json"},
+            )
+            if r.status_code == 200:
+                result[sym] = float(r.json()["data"]["amount"])
+        except Exception:
+            pass
     eth = result.get("ethereum")
     if eth:
         for sym in ("base", "arbitrum", "optimism"):
@@ -174,7 +181,7 @@ def _do_refresh():
     now = time.time()
     merged = {}
 
-    for fetcher in (_fetch_coingecko, _fetch_binance, _fetch_cryptocompare):
+    for fetcher in (_fetch_coingecko, _fetch_kraken, _fetch_coinbase):
         try:
             partial = fetcher()
             for sym, price in partial.items():
