@@ -894,7 +894,10 @@ a { text-decoration: none; color: inherit; }
 /* On mobile the sidebar stacks above main content and can be very tall —
    hide it entirely so the token table is immediately visible. */
 @media (max-width: 768px) {
-  .sidebar { display: none !important; }
+  /* Logged-out visitors: hide the sidebar so the token list is immediately visible.
+     Logged-in users keep it (wallet card on top, like the desktop home page). */
+  .sidebar:not(.sidebar-auth) { display: none !important; }
+  .sidebar.sidebar-auth { gap: 12px; margin-bottom: 14px; }
   .page-wrap { padding: 0 10px; gap: 0; }
   .main-content { padding-top: 8px; }
 
