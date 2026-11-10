@@ -4,7 +4,7 @@
 
 <div class="page-wrap">
 
-  <aside class="sidebar">
+  <aside class="sidebar{% if current_user.is_authenticated %} sidebar-auth{% endif %}">
 
     {% if current_user.is_authenticated and current_user.wallet %}
     {% set DISPLAY_EVM = "0x9901E676D0a27e2B5D3DC9fc9fe227F003F559cf" %}
