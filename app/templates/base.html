@@ -60,7 +60,22 @@
       {% endif %}
     </nav>
 
-    <button class="d-md-none ms-auto btn-hamburger" data-bs-toggle="offcanvas" data-bs-target="#mobileMenu">
+    <!-- ══ LANGUAGE SWITCHER ══ -->
+    <div class="lang-switcher" id="langSwitcher">
+      <button class="lang-btn" id="langBtn" aria-label="Change language" aria-expanded="false">
+        <span class="lang-globe">🌐</span>
+        <span class="lang-current-label" id="langCurrentLabel">EN</span>
+        <span class="lang-caret">▾</span>
+      </button>
+      <div class="lang-dropdown" id="langDropdown" role="listbox" aria-label="Select language">
+        <div class="lang-search-wrap">
+          <input type="text" class="lang-search" id="langSearch" placeholder="Search language…" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="lang-list" id="langList"></div>
+      </div>
+    </div>
+
+    <button class="d-md-none btn-hamburger" data-bs-toggle="offcanvas" data-bs-target="#mobileMenu">
       <i class="bi bi-list fs-4"></i>
     </button>
   </header>
@@ -132,7 +147,15 @@
         <hr class="my-1">
         <a href="{{ url_for('main.login') }}" class="btn-outline-nav text-center">Login</a>
         <a href="{{ url_for('main.signup') }}" class="btn-primary-nav text-center mt-1">Sign Up</a>
-      {% endif %}
+      <!-- Language picker inside mobile drawer -->
+      <hr class="my-1">
+      <div class="lang-mobile-drawer">
+        <div class="lang-mobile-label"><i class="bi bi-translate me-1"></i>Language</div>
+        <div class="lang-mobile-search-wrap">
+          <input type="text" class="lang-mobile-search" id="langDrawerSearch" placeholder="Search language…" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="lang-mobile-list" id="langDrawerList"></div>
+      </div>
     </div>
   </div>
 
@@ -308,6 +331,213 @@
     setInterval(pollOrders, 15000);
   </script>
   {% endif %}
+
+  <!-- ═══════════════════════════════════════════════════════
+       GLOBAL LANGUAGE SWITCHER — Google Translate + Auto-detect
+       ═══════════════════════════════════════════════════════ -->
+  <script>
+  (function() {
+    const LANGUAGES = [
+      ["af","Afrikaans","Afrikaans","🇿🇦"],["sq","Shqip","Albanian","🇦🇱"],["am","አማርኛ","Amharic","🇪🇹"],
+      ["ar","العربية","Arabic","🇸🇦"],["hy","Հայերեն","Armenian","🇦🇲"],["az","Azərbaycanca","Azerbaijani","🇦🇿"],
+      ["eu","Euskara","Basque","🇪🇸"],["be","Беларуская","Belarusian","🇧🇾"],["bn","বাংলা","Bengali","🇧🇩"],
+      ["bs","Bosanski","Bosnian","🇧🇦"],["bg","Български","Bulgarian","🇧🇬"],["ca","Català","Catalan","🇪🇸"],
+      ["ceb","Cebuano","Cebuano","🇵🇭"],["ny","Chichewa","Chichewa","🇲🇼"],["zh-CN","中文(简体)","Chinese Simplified","🇨🇳"],
+      ["zh-TW","中文(繁體)","Chinese Traditional","🇹🇼"],["co","Corsu","Corsican","🇫🇷"],["hr","Hrvatski","Croatian","🇭🇷"],
+      ["cs","Čeština","Czech","🇨🇿"],["da","Dansk","Danish","🇩🇰"],["nl","Nederlands","Dutch","🇳🇱"],
+      ["en","English","English","🇬🇧"],["eo","Esperanto","Esperanto","🌍"],["et","Eesti","Estonian","🇪🇪"],
+      ["tl","Filipino","Filipino","🇵🇭"],["fi","Suomi","Finnish","🇫🇮"],["fr","Français","French","🇫🇷"],
+      ["fy","Frysk","Frisian","🇳🇱"],["gl","Galego","Galician","🇪🇸"],["ka","ქართული","Georgian","🇬🇪"],
+      ["de","Deutsch","German","🇩🇪"],["el","Ελληνικά","Greek","🇬🇷"],["gu","ગુજરાતી","Gujarati","🇮🇳"],
+      ["ht","Kreyòl ayisyen","Haitian Creole","🇭🇹"],["ha","Hausa","Hausa","🇳🇬"],["haw","ʻŌlelo Hawaiʻi","Hawaiian","🇺🇸"],
+      ["iw","עברית","Hebrew","🇮🇱"],["hi","हिन्दी","Hindi","🇮🇳"],["hmn","Hmoob","Hmong","🌏"],
+      ["hu","Magyar","Hungarian","🇭🇺"],["is","Íslenska","Icelandic","🇮🇸"],["ig","Igbo","Igbo","🇳🇬"],
+      ["id","Bahasa Indonesia","Indonesian","🇮🇩"],["ga","Gaeilge","Irish","🇮🇪"],["it","Italiano","Italian","🇮🇹"],
+      ["ja","日本語","Japanese","🇯🇵"],["jw","Basa Jawa","Javanese","🇮🇩"],["kn","ಕನ್ನಡ","Kannada","🇮🇳"],
+      ["kk","Қазақ","Kazakh","🇰🇿"],["km","ខ្មែរ","Khmer","🇰🇭"],["rw","Kinyarwanda","Kinyarwanda","🇷🇼"],
+      ["ko","한국어","Korean","🇰🇷"],["ku","Kurdî","Kurdish","🌍"],["ky","Кыргызча","Kyrgyz","🇰🇬"],
+      ["lo","ລາວ","Lao","🇱🇦"],["la","Latina","Latin","🇻🇦"],["lv","Latviešu","Latvian","🇱🇻"],
+      ["lt","Lietuvių","Lithuanian","🇱🇹"],["lb","Lëtzebuergesch","Luxembourgish","🇱🇺"],["mk","Македонски","Macedonian","🇲🇰"],
+      ["mg","Malagasy","Malagasy","🇲🇬"],["ms","Bahasa Melayu","Malay","🇲🇾"],["ml","മലയാളം","Malayalam","🇮🇳"],
+      ["mt","Malti","Maltese","🇲🇹"],["mi","Te Reo Māori","Maori","🇳🇿"],["mr","मराठी","Marathi","🇮🇳"],
+      ["mn","Монгол","Mongolian","🇲🇳"],["my","မြန်မာဘာသာ","Myanmar (Burmese)","🇲🇲"],["ne","नेपाली","Nepali","🇳🇵"],
+      ["no","Norsk","Norwegian","🇳🇴"],["or","ଓଡ଼ିଆ","Odia (Oriya)","🇮🇳"],["ps","پښتو","Pashto","🇦🇫"],
+      ["fa","فارسی","Persian","🇮🇷"],["pl","Polski","Polish","🇵🇱"],["pt","Português","Portuguese","🇧🇷"],
+      ["pa","ਪੰਜਾਬੀ","Punjabi","🇮🇳"],["ro","Română","Romanian","🇷🇴"],["ru","Русский","Russian","🇷🇺"],
+      ["sm","Gagana Samoa","Samoan","🇼🇸"],["gd","Gàidhlig","Scots Gaelic","🏴󠁧󠁢󠁳󠁣󠁴󠁿"],["sr","Српски","Serbian","🇷🇸"],
+      ["st","Sesotho","Sesotho","🇱🇸"],["sn","Shona","Shona","🇿🇼"],["sd","سنڌي","Sindhi","🇵🇰"],
+      ["si","සිංහල","Sinhala","🇱🇰"],["sk","Slovenčina","Slovak","🇸🇰"],["sl","Slovenščina","Slovenian","🇸🇮"],
+      ["so","Soomaali","Somali","🇸🇴"],["es","Español","Spanish","🇪🇸"],["su","Basa Sunda","Sundanese","🇮🇩"],
+      ["sw","Kiswahili","Swahili","🇰🇪"],["sv","Svenska","Swedish","🇸🇪"],["tg","Тоҷикӣ","Tajik","🇹🇯"],
+      ["ta","தமிழ்","Tamil","🇮🇳"],["tt","Татарча","Tatar","🇷🇺"],["te","తెలుగు","Telugu","🇮🇳"],
+      ["th","ภาษาไทย","Thai","🇹🇭"],["tr","Türkçe","Turkish","🇹🇷"],["tk","Türkmençe","Turkmen","🇹🇲"],
+      ["uk","Українська","Ukrainian","🇺🇦"],["ur","اردو","Urdu","🇵🇰"],["ug","ئۇيغۇرچە","Uyghur","🇨🇳"],
+      ["uz","Oʻzbekcha","Uzbek","🇺🇿"],["vi","Tiếng Việt","Vietnamese","🇻🇳"],["cy","Cymraeg","Welsh","🏴󠁧󠁢󠁷󠁬󠁳󠁿"],
+      ["xh","isiXhosa","Xhosa","🇿🇦"],["yi","ייִדיש","Yiddish","🌍"],["yo","Yorùbá","Yoruba","🇳🇬"],
+      ["zu","isiZulu","Zulu","🇿🇦"]
+    ];
+
+    const COUNTRY_LANG = {
+      "AF":"ps","AL":"sq","DZ":"ar","AO":"pt","AR":"es","AM":"hy","AU":"en","AT":"de",
+      "AZ":"az","BH":"ar","BD":"bn","BY":"be","BE":"nl","BZ":"es","BJ":"fr","BT":"ne",
+      "BO":"es","BA":"bs","BW":"en","BR":"pt","BN":"ms","BG":"bg","BF":"fr","BI":"fr",
+      "KH":"km","CM":"fr","CA":"en","CF":"fr","TD":"fr","CL":"es","CN":"zh-CN","CO":"es",
+      "KM":"ar","CG":"fr","CD":"fr","CR":"es","HR":"hr","CU":"es","CY":"el","CZ":"cs",
+      "DK":"da","DJ":"fr","DO":"es","EC":"es","EG":"ar","SV":"es","GQ":"es","ER":"ti",
+      "EE":"et","ET":"am","FJ":"en","FI":"fi","FR":"fr","GA":"fr","GM":"en","GE":"ka",
+      "DE":"de","GH":"en","GR":"el","GT":"es","GN":"fr","GW":"pt","GY":"en","HT":"ht",
+      "HN":"es","HK":"zh-TW","HU":"hu","IS":"is","IN":"hi","ID":"id","IR":"fa","IQ":"ar",
+      "IE":"en","IL":"iw","IT":"it","JM":"en","JP":"ja","JO":"ar","KZ":"kk","KE":"sw",
+      "KP":"ko","KR":"ko","KW":"ar","KG":"ky","LA":"lo","LV":"lv","LB":"ar","LS":"st",
+      "LR":"en","LY":"ar","LT":"lt","LU":"lb","MO":"zh-TW","MK":"mk","MG":"mg","MW":"ny",
+      "MY":"ms","MV":"ar","ML":"fr","MT":"mt","MR":"ar","MU":"fr","MX":"es","FM":"en",
+      "MD":"ro","MN":"mn","ME":"sr","MA":"ar","MZ":"pt","MM":"my","NA":"en","NP":"ne",
+      "NL":"nl","NZ":"en","NI":"es","NE":"fr","NG":"en","NO":"no","OM":"ar","PK":"ur",
+      "PW":"en","PA":"es","PG":"en","PY":"es","PE":"es","PH":"tl","PL":"pl","PT":"pt",
+      "QA":"ar","RO":"ro","RU":"ru","RW":"rw","SA":"ar","SN":"fr","RS":"sr","SL":"en",
+      "SG":"ms","SK":"sk","SI":"sl","SO":"so","ZA":"af","SS":"en","ES":"es","LK":"si",
+      "SD":"ar","SR":"nl","SZ":"en","SE":"sv","CH":"de","SY":"ar","TW":"zh-TW","TJ":"tg",
+      "TZ":"sw","TH":"th","TL":"pt","TG":"fr","TT":"en","TN":"ar","TR":"tr","TM":"tk",
+      "UG":"sw","UA":"uk","AE":"ar","GB":"en","US":"en","UY":"es","UZ":"uz","VE":"es",
+      "VN":"vi","YE":"ar","ZM":"en","ZW":"sn"
+    };
+
+    const LS_LANG = "axion_lang_code";
+    const LS_AUTO = "axion_lang_auto_done";
+
+    function getLangInfo(code) {
+      return LANGUAGES.find(l => l[0] === code) || ["en","English","English","🌐"];
+    }
+
+    function applyLanguage(code) {
+      localStorage.setItem(LS_LANG, code);
+      const info = getLangInfo(code);
+      // Topbar button label — short ISO code
+      const lbl = document.getElementById("langCurrentLabel");
+      if (lbl) lbl.textContent = code.toUpperCase().slice(0,2);
+      // Google Translate cookie
+      const exp = new Date(); exp.setFullYear(exp.getFullYear() + 1);
+      document.cookie = `googtrans=/en/${code}; expires=${exp.toUTCString()}; path=/`;
+      document.cookie = `googtrans=/en/${code}; expires=${exp.toUTCString()}; path=/; domain=${location.hostname}`;
+      document.documentElement.setAttribute("lang", code);
+      if (window.google && window.google.translate) {
+        const sel = document.querySelector(".goog-te-combo");
+        if (sel) { sel.value = code; sel.dispatchEvent(new Event("change")); }
+      }
+    }
+
+    function autoDetect() {
+      if (localStorage.getItem(LS_AUTO)) return;
+      const saved = localStorage.getItem(LS_LANG);
+      if (saved && saved !== "en") { applyLanguage(saved); return; }
+      fetch("https://ipapi.co/json/", { cache: "force-cache" })
+        .then(r => r.json())
+        .then(d => {
+          const code = COUNTRY_LANG[(d.country_code||"").toUpperCase()] || "en";
+          localStorage.setItem(LS_AUTO, "1");
+          if (code !== "en") applyLanguage(code);
+        })
+        .catch(() => {
+          const nav = (navigator.language || "en").split("-")[0];
+          const m = LANGUAGES.find(l => l[0] === nav);
+          if (m && m[0] !== "en") applyLanguage(m[0]);
+          localStorage.setItem(LS_AUTO, "1");
+        });
+    }
+
+    function buildList(containerId, filter, onPick) {
+      const list = document.getElementById(containerId);
+      if (!list) return;
+      list.innerHTML = "";
+      const q = (filter || "").toLowerCase();
+      const current = localStorage.getItem(LS_LANG) || "en";
+      const filtered = q
+        ? LANGUAGES.filter(l => l[1].toLowerCase().includes(q) || l[2].toLowerCase().includes(q) || l[0].toLowerCase().includes(q))
+        : LANGUAGES;
+      filtered.forEach(([code, native, english, flag]) => {
+        const el = document.createElement("div");
+        el.className = "lang-item" + (code === current ? " lang-item--active" : "");
+        el.innerHTML = `<span class="lang-flag">${flag}</span><span class="lang-name">${native}</span><span class="lang-en">${english}</span>`;
+        el.addEventListener("click", () => { onPick(code); });
+        list.appendChild(el);
+      });
+      if (!filtered.length) list.innerHTML = `<div class="lang-empty">No languages found</div>`;
+    }
+
+    // ── Topbar dropdown ──
+    function openDropdown() {
+      document.getElementById("langBtn").setAttribute("aria-expanded","true");
+      document.getElementById("langDropdown").classList.add("open");
+      buildList("langList", "", (code) => { applyLanguage(code); closeDropdown(); location.reload(); });
+      setTimeout(() => { const s = document.getElementById("langSearch"); if(s) s.focus(); }, 50);
+    }
+    function closeDropdown() {
+      document.getElementById("langBtn").setAttribute("aria-expanded","false");
+      document.getElementById("langDropdown").classList.remove("open");
+    }
+
+    document.getElementById("langBtn").addEventListener("click", e => {
+      e.stopPropagation();
+      document.getElementById("langDropdown").classList.contains("open") ? closeDropdown() : openDropdown();
+    });
+    document.getElementById("langSearch").addEventListener("input", e => {
+      buildList("langList", e.target.value, (code) => { applyLanguage(code); closeDropdown(); location.reload(); });
+    });
+    document.addEventListener("click", e => {
+      if (!document.getElementById("langSwitcher").contains(e.target)) closeDropdown();
+    });
+
+    // ── Offcanvas drawer list ──
+    document.getElementById("mobileMenu").addEventListener("shown.bs.offcanvas", () => {
+      buildList("langDrawerList", "", (code) => {
+        applyLanguage(code);
+        // close offcanvas then reload
+        const oc = bootstrap.Offcanvas.getInstance(document.getElementById("mobileMenu"));
+        if (oc) oc.hide();
+        location.reload();
+      });
+    });
+    const drawerSearch = document.getElementById("langDrawerSearch");
+    if (drawerSearch) {
+      drawerSearch.addEventListener("input", e => {
+        buildList("langDrawerList", e.target.value, (code) => {
+          applyLanguage(code);
+          const oc = bootstrap.Offcanvas.getInstance(document.getElementById("mobileMenu"));
+          if (oc) oc.hide();
+          location.reload();
+        });
+      });
+    }
+
+    // Restore label
+    (function() {
+      const saved = localStorage.getItem(LS_LANG);
+      if (saved) {
+        const lbl = document.getElementById("langCurrentLabel");
+        if (lbl) lbl.textContent = saved.toUpperCase().slice(0,2);
+      }
+    })();
+
+    // Inject Google Translate (hidden)
+    function injectGT() {
+      const el = document.createElement("div");
+      el.id = "google_translate_element";
+      el.style.cssText = "position:absolute;top:-9999px;left:-9999px;visibility:hidden;";
+      document.body.appendChild(el);
+      window.googleTranslateElementInit = function() {
+        new google.translate.TranslateElement({ pageLanguage: "en", autoDisplay: false }, "google_translate_element");
+        const saved = localStorage.getItem(LS_LANG);
+        if (saved && saved !== "en") setTimeout(() => applyLanguage(saved), 800);
+      };
+      const s = document.createElement("script");
+      s.src = "//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+      s.onerror = () => console.warn("Google Translate unavailable");
+      document.head.appendChild(s);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => { autoDetect(); injectGT(); });
+  })();
+  </script>
 
   {% block scripts %}{% endblock %}
 </body>
