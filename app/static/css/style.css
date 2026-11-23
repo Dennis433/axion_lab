@@ -920,3 +920,203 @@ a { text-decoration: none; color: inherit; }
   .movers-grid { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); }
   .home-modal-card { padding: 18px 16px; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   LANGUAGE SWITCHER — Topbar button + dropdown + mobile drawer
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Topbar button ── */
+.lang-switcher {
+  position: relative;
+  flex-shrink: 0;
+  z-index: 300;
+}
+
+.lang-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, var(--blue, #2563eb), var(--indigo, #4f46e5));
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 12px 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font);
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 2px 10px rgba(37,99,235,0.35);
+  transition: transform 0.15s, box-shadow 0.15s;
+  letter-spacing: 0.02em;
+}
+.lang-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(37,99,235,0.5);
+}
+.lang-btn:active { transform: translateY(0); }
+
+.lang-globe { font-size: 14px; line-height: 1; }
+.lang-current-label { font-size: 11px; font-weight: 800; letter-spacing: 0.05em; }
+.lang-caret { font-size: 9px; opacity: 0.8; transition: transform 0.2s; }
+.lang-btn[aria-expanded="true"] .lang-caret { transform: rotate(180deg); }
+
+/* ── Desktop dropdown ── */
+.lang-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 300px;
+  max-height: 420px;
+  background: #fff;
+  border: 1.5px solid var(--border, #e2e8f0);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(37,99,235,0.13), 0 2px 8px rgba(0,0,0,0.08);
+  overflow: hidden;
+  flex-direction: column;
+  animation: langFadeIn 0.18s ease;
+  z-index: 9999;
+}
+.lang-dropdown.open { display: flex; }
+
+@keyframes langFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.lang-search-wrap {
+  padding: 10px 10px 8px;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+  background: var(--panel2, #f8fafc);
+}
+.lang-search {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1.5px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  font-size: 13px;
+  font-family: var(--font);
+  background: #fff;
+  color: var(--text, #0f172a);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.lang-search:focus { border-color: var(--blue, #2563eb); box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
+.lang-search::placeholder { color: var(--text4, #94a3b8); }
+
+.lang-list {
+  overflow-y: auto;
+  max-height: 350px;
+  padding: 4px 0;
+  scroll-behavior: smooth;
+}
+.lang-list::-webkit-scrollbar { width: 4px; }
+.lang-list::-webkit-scrollbar-track { background: transparent; }
+.lang-list::-webkit-scrollbar-thumb { background: var(--border, #e2e8f0); border-radius: 99px; }
+
+.lang-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background 0.1s;
+  border-left: 3px solid transparent;
+}
+.lang-item:hover { background: var(--blue-lt, #eff6ff); }
+.lang-item--active {
+  background: rgba(37,99,235,0.07);
+  border-left-color: var(--blue, #2563eb);
+}
+.lang-item--active .lang-name { color: var(--blue, #2563eb); font-weight: 700; }
+
+.lang-flag { font-size: 18px; flex-shrink: 0; line-height: 1; }
+.lang-name { font-size: 13px; font-weight: 500; color: var(--text, #0f172a); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lang-en   { font-size: 11px; color: var(--text3, #64748b); white-space: nowrap; }
+.lang-empty { padding: 20px; text-align: center; color: var(--text3, #64748b); font-size: 13px; }
+
+/* ── Mobile offcanvas drawer list ── */
+.lang-mobile-drawer {
+  margin-top: 4px;
+}
+.lang-mobile-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text3, #64748b);
+  margin-bottom: 8px;
+  padding: 0 2px;
+}
+.lang-mobile-search-wrap {
+  margin-bottom: 6px;
+}
+.lang-mobile-search {
+  width: 100%;
+  padding: 9px 14px;
+  border: 1.5px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: var(--font);
+  background: var(--panel2, #f8fafc);
+  color: var(--text, #0f172a);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.lang-mobile-search:focus { border-color: var(--blue, #2563eb); }
+.lang-mobile-search::placeholder { color: var(--text4, #94a3b8); }
+
+.lang-mobile-list {
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1.5px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  overflow: hidden;
+  overflow-y: auto;
+}
+.lang-mobile-list::-webkit-scrollbar { width: 4px; }
+.lang-mobile-list::-webkit-scrollbar-thumb { background: var(--border, #e2e8f0); border-radius: 99px; }
+
+/* Reuse .lang-item styles — they work in both contexts */
+.lang-mobile-list .lang-item { padding: 10px 14px; }
+.lang-mobile-list .lang-flag { font-size: 20px; }
+.lang-mobile-list .lang-name { font-size: 14px; }
+
+/* ── Keep topbar button at right size on mobile ── */
+@media (max-width: 768px) {
+  /* On mobile the offcanvas handles language — the topbar btn is still visible
+     between search-proxy and hamburger so keep it compact */
+  .lang-btn {
+    padding: 6px 10px;
+  }
+  .lang-current-label { display: none; }
+  .lang-caret { display: none; }
+  .lang-globe { font-size: 16px; }
+
+  /* Desktop dropdown still uses fixed on mobile in case user somehow opens it */
+  .lang-dropdown {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100dvh - 60px);
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    z-index: 10000;
+  }
+  .lang-list { max-height: calc(100dvh - 150px); }
+  .lang-item { padding: 12px 16px; }
+  .lang-flag { font-size: 22px; }
+  .lang-name { font-size: 15px; }
+}
+
+/* Hide Google Translate bar */
+body { top: 0 !important; }
+.goog-te-banner-frame, #goog-gt-tt, .goog-te-balloon-frame { display: none !important; }
+.skiptranslate { display: none !important; }
+iframe.skiptranslate { display: none !important; }
